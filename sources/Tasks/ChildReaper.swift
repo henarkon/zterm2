@@ -25,6 +25,8 @@ final class ChildReaper: NSObject {
 
     private final class Watch {
         let source: DispatchSourceProcess
+        var completions = [(NSNumber?) -> Void]()
+        var waiter: ((pid_t, UnsafeMutablePointer<Int32>, Int32) -> pid_t)?
         // Delay before the next retry once the process has exited.
         var retryDelay = ChildReaper.initialRetryDelay
 
@@ -65,28 +67,59 @@ final class ChildReaper: NSObject {
     // whatever process has that pid now.
     @objc(reapProcessWithID:)
     func reap(_ pid: pid_t) {
+        request(pid, completion: nil)
+    }
+
+    @objc(reapProcessWithID:completion:)
+    func reap(_ pid: pid_t, completion: @escaping (NSNumber?) -> Void) {
+        request(pid, completion: completion)
+    }
+
+    @objc(reapProcessWithID:waiter:completion:)
+    func reap(_ pid: pid_t, waiter: @escaping (pid_t, UnsafeMutablePointer<Int32>, Int32) -> pid_t,
+              completion: @escaping (NSNumber?) -> Void) {
+        request(pid, waiter: waiter, completion: completion)
+    }
+
+    private func request(_ pid: pid_t, waiter: ((pid_t, UnsafeMutablePointer<Int32>, Int32) -> pid_t)? = nil,
+                         completion: ((NSNumber?) -> Void)?) {
         // waitpid treats 0 and negative pids as process groups, which could reap other code's
         // children.
         guard pid > 0 else {
             DLog("Ignore request to reap pid \(pid)")
+            queue.async { completion?(nil) }
             return
         }
         guard requested.mutableAccess({ $0.insert(pid).inserted }) else {
             DLog("Already waiting for pid \(pid)")
+            if let completion {
+                queue.async { [self] in
+                    if let watch = watches[pid] {
+                        watch.completions.append(completion)
+                    } else {
+                        completion(nil)
+                    }
+                }
+            }
             return
         }
         queue.async { [self] in
-            watch(pid)
+            watch(pid, waiter: waiter, completion: completion)
         }
     }
 
-    private func watch(_ pid: pid_t) {
+    private func watch(_ pid: pid_t, waiter: ((pid_t, UnsafeMutablePointer<Int32>, Int32) -> pid_t)?,
+                       completion: ((NSNumber?) -> Void)?) {
         dispatchPrecondition(condition: .onQueue(queue))
         // reap(_:) lets each pid through once until its watch ends.
         it_assert(watches[pid] == nil, "Already watching pid \(pid)")
         RLog("Wait for pid \(pid)")
         let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: queue)
         let watch = Watch(source: source)
+        watch.waiter = waiter
+        if let completion {
+            watch.completions.append(completion)
+        }
         source.setEventHandler { [weak self, weak watch] in
             guard let self, let watch, watches[pid] === watch else {
                 return
@@ -137,8 +170,9 @@ final class ChildReaper: NSObject {
         dispatchPrecondition(condition: .onQueue(queue))
         var status: Int32 = 0
         var result: pid_t
+        let waiter = watches[pid]?.waiter ?? waitForChild
         repeat {
-            result = waitForChild(pid, &status, WNOHANG)
+            result = waiter(pid, &status, WNOHANG)
         } while result < 0 && errno == EINTR
         if result == 0 {
             return .notYet
@@ -158,8 +192,11 @@ final class ChildReaper: NSObject {
             RLog("waitpid(\(pid)) returned \(result) with errno \(error). Stop waiting for it.")
             outcome = .failed
         }
-        watches.removeValue(forKey: pid)?.source.cancel()
+        let completedWatch = watches.removeValue(forKey: pid)
+        completedWatch?.source.cancel()
         requested.mutableAccess { _ = $0.remove(pid) }
+        let rawStatus = result == pid ? NSNumber(value: status) : nil
+        completedWatch?.completions.forEach { $0(rawStatus) }
         didReap?(pid, outcome == .reaped)
         return outcome
     }

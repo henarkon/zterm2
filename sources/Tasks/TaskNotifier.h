@@ -49,6 +49,10 @@ extern NSString *const kCoprocessStatusChangeNotification;
 // a reaped pid may belong to another process, so each of a task's pids goes to the reaper once.
 - (BOOL)markPidHandedToReaper:(pid_t)pid;
 
+@optional
+@property(nonatomic, readonly, copy) void (^processExitHandler)(NSNumber *rawStatus);
+@property(nonatomic, readonly, copy) pid_t (^ownedProcessWaiter)(pid_t pid, int *status, int options);
+
 @end
 
 // Has the same signature and semantics as select(2). Tests use it to observe or script the loop.

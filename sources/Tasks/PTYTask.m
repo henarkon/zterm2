@@ -170,6 +170,17 @@ static void HandleSigChld(int n) {
     return self.jobManager.pidToWaitOn;
 }
 
+- (pid_t (^)(pid_t, int *, int))ownedProcessWaiter {
+    id<iTermJobManager> jobManager = self.jobManager;
+    return ^pid_t(pid_t pid, int *status, int options) {
+        if ([jobManager respondsToSelector:@selector(waitForOwnedProcess:status:options:)]) {
+            return [jobManager waitForOwnedProcess:pid status:status options:options];
+        }
+        errno = ENOTSUP;
+        return -1;
+    };
+}
+
 - (BOOL)isSessionRestorationPossible {
     return self.jobManager.isSessionRestorationPossible;
 }
@@ -800,11 +811,13 @@ static void HandleSigChld(int n) {
 }
 
 - (NSArray<NSString *> *)environWithOverrides:(NSDictionary *)env {
-    NSMutableDictionary *environmentDict = [self mutableEnvironmentDictionary];
+    NSMutableDictionary *environmentDict = self.launchWithExplicitEnvironment ? [NSMutableDictionary dictionary] : [self mutableEnvironmentDictionary];
     for (NSString *k in env) {
         environmentDict[k] = env[k];
     }
-    [environmentDict removeObjectForKey:@"SHLVL"];  // Issue 9756
+    if (!self.launchWithExplicitEnvironment) {
+        [environmentDict removeObjectForKey:@"SHLVL"];
+    }
     NSMutableArray<NSString *> *environment = [NSMutableArray array];
     for (NSString *k in environmentDict) {
         NSString *temp = [NSString stringWithFormat:@"%@=%@", k, environmentDict[k]];
@@ -886,7 +899,7 @@ static void HandleSigChld(int n) {
     if (customShell) {
         DLog(@"Use custom shell");
         env = [env dictionaryBySettingObject:customShell forKey:@"SHELL"];
-    } else {
+    } else if (!self.launchWithExplicitEnvironment) {
         env = [self environmentBySettingShell:env];
     }
 
@@ -944,6 +957,13 @@ static void HandleSigChld(int n) {
 - (void)didForkAndExec:(NSString *)progpath
             withStatus:(iTermJobManagerForkAndExecStatus)status
      optionalErrorCode:(NSNumber *)optionalErrorCode {
+    if (self.launchResultHandler) {
+        if (status == iTermJobManagerForkAndExecStatusSuccess) {
+            [self setTty:self.jobManager.tty];
+        }
+        self.launchResultHandler(status, optionalErrorCode);
+        return;
+    }
     switch (status) {
         case iTermJobManagerForkAndExecStatusSuccess:
             // Parent

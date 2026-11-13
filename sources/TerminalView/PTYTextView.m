@@ -7978,6 +7978,9 @@ static NSString *iTermStringFromRange(NSRange range) {
 @implementation PTYTextView(MouseHandler)
 
 - (BOOL)mouseHandlerViewHasFocus:(PTYMouseHandler *)handler {
+    if (self.usesHostWindowFocus) {
+        return self.window.isKeyWindow && self.window.firstResponder == self;
+    }
     return [[iTermController sharedInstance] frontTextView] == self;
 }
 

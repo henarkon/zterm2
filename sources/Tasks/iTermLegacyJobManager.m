@@ -13,6 +13,7 @@
 #import "PTYTask+MRR.h"
 #import "TaskNotifier.h"
 #import "iTerm2SharedARC-Swift.h"
+#include <sys/wait.h>
 
 @interface iTermLegacyJobManager()
 @property (atomic) pid_t childPid;
@@ -170,18 +171,41 @@
 }
 
 - (void)queueSendSignal:(int)signo toProcessGroup:(BOOL)toProcessGroup {
-    if (self.childPid <= 0) {
-        return;
+    @synchronized (self) {
+        if (self.childPid <= 0) {
+            return;
+        }
+        [[iTermProcessCache sharedInstance] unregisterTrackedPID:self.childPid];
+        if (toProcessGroup) {
+            RLog(@"Kill process group %@ with signal %@", @(self.childPid), @(signo));
+            killpg(self.childPid, signo);
+        } else {
+            RLog(@"Kill process %@ with signal %@", @(self.childPid), @(signo));
+            kill(self.childPid, signo);
+        }
+        DLog(@"%@", [NSThread callStackSymbols]);
     }
-    [[iTermProcessCache sharedInstance] unregisterTrackedPID:self.childPid];
-    if (toProcessGroup) {
-        RLog(@"Kill process group %@ with signal %@", @(self.childPid), @(signo));
-        killpg(self.childPid, signo);
-    } else {
-        RLog(@"Kill process %@ with signal %@", @(self.childPid), @(signo));
-        kill(self.childPid, signo);
+}
+
+- (pid_t)waitForOwnedProcess:(pid_t)pid status:(int *)status options:(int)options {
+    @synchronized (self) {
+        if (pid <= 0 || pid != self.childPid) {
+            errno = ECHILD;
+            return -1;
+        }
+        if ((options & WNOHANG) == 0) {
+            errno = EINVAL;
+            return -1;
+        }
+        const pid_t result = waitpid(pid, status, options);
+        const int savedError = errno;
+        if (result == pid || (result < 0 && errno == ECHILD)) {
+            self.childPid = -1;
+            [[iTermProcessCache sharedInstance] unregisterTrackedPID:pid];
+        }
+        errno = savedError;
+        return result;
     }
-    DLog(@"%@", [NSThread callStackSymbols]);
 }
 
 - (void)killWithMode:(iTermJobManagerKillingMode)mode {

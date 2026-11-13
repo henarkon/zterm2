@@ -1,0 +1,181 @@
+{
+  "schema": "zterm2-embedded-contract-proposal-1",
+  "status": "proposal-partially-implemented-M1-qualified",
+  "implementation": {
+    "candidateVersion": "0.2.0",
+    "bindingApi": "embedded/ZTermEmbedded.h",
+    "integrationGuide": "embedded/integration.txt",
+    "qualificationPlan": "tests/zterm2_embedded/qualification-plan.txt",
+    "note": "The operations below remain the full proposal. The public header and integration guide define the smaller implemented API; untested capabilities are not claimed.",
+    "qualification": "dist/v0.2.0/qualification.json"
+  },
+  "proposedApiVersion": "1.0.0",
+  "releasedComponentVersion": "0.2.0",
+  "purpose": "In-process AppKit terminal view in a distinct macOS application, rendering a child PTY byte stream with the zterm2 engine.",
+  "platform": {
+    "proposedMinimumMacOS": "13.0",
+    "initialArchitecture": "arm64",
+    "qualifiedArchitectures": [
+      "arm64"
+    ],
+    "runtimeHomebrewDependencyAllowed": false,
+    "signatureAndNotarization": "later-distribution-milestone",
+    "qualifiedOSVersions": [
+      "macOS 26.6.2 (25G83), designated UTM VM"
+    ]
+  },
+  "instance": {
+    "identifier": "UUID allocated by component; included in every event",
+    "states": [
+      "created",
+      "starting",
+      "running",
+      "stopping",
+      "exited",
+      "closing",
+      "closed",
+      "failed"
+    ],
+    "singleLaunch": true,
+    "restart": "Create a new instance; never restart implicitly after exit code 75.",
+    "eventOrdering": "Monotonic sequence per instance, delivered on main thread. Exactly one process-termination event for each successfully launched process; exactly one closed event after teardown.",
+    "teardown": "Idempotent and asynchronous; closed means child reaped, owned descriptors closed, I/O callbacks drained and submitted GPU work completed. A timeout is reported without pretending teardown succeeded."
+  },
+  "operations": {
+    "create": {
+      "input": [
+        "host resource bundle",
+        "isolated storage directory",
+        "isolated preferences identity",
+        "initial bounds",
+        "render options"
+      ],
+      "result": [
+        "controller",
+        "NSView",
+        "instance UUID"
+      ],
+      "errors": [
+        "wrongThread",
+        "invalidConfiguration",
+        "missingResource",
+        "unsupportedPlatform",
+        "initializationFailed"
+      ]
+    },
+    "launch": {
+      "input": {
+        "executable": "Absolute executable path, no implicit shell",
+        "arguments": "Array of literal strings, excludes argv[0]",
+        "environment": "Explicit map, no implicit login-shell PATH or secrets in diagnostics",
+        "workingDirectory": "Absolute existing directory, independent of host process cwd"
+      },
+      "result": "Asynchronous started(instanceID, childPID) or launchFailed(instanceID, error); started is not an exec-success proof unless launcher has acknowledged exec.",
+      "errors": [
+        "wrongThread",
+        "invalidState",
+        "invalidExecutable",
+        "invalidWorkingDirectory",
+        "invalidEnvironment",
+        "ptyAllocationFailed",
+        "spawnFailed",
+        "execFailed"
+      ]
+    },
+    "sendInput": {
+      "input": "Terminal bytes; bounded pending-byte budget and backpressure",
+      "result": "accepted byte count, or wouldBlock/closed/invalidState",
+      "keyboard": "AppKit text input and terminal key mapping, including Option and IME",
+      "paste": "Distinct paste operation follows negotiated bracketed-paste mode; never interpreted as a business command"
+    },
+    "resize": {
+      "input": [
+        "view bounds in points",
+        "backing scale"
+      ],
+      "result": "Effective columns, rows, pixel width and pixel height; correlated sizeChanged event after applying TIOCSWINSZ",
+      "rules": "Positive finite dimensions; clamp to supported cell and pixel limits, coalesce stale pending sizes, derive cells from actual font metrics and margins. Never treat points as Retina pixels."
+    },
+    "requestStop": {
+      "input": "Instance-owned child/process group only; grace deadline then explicit escalation policy",
+      "result": "termination event with requested=true and actual raw wait status",
+      "prohibition": "Never stop Vigil, OpenCode, another terminal or a shared engine."
+    },
+    "close": {
+      "input": "No arguments; safe in created, starting, running, exited or failed states",
+      "result": "One closed event after the teardown barrier; repeated calls observe the same completion. No callbacks after closed."
+    },
+    "attachPTY": {
+      "status": "deferred-unsupported-for-initial-launch-only-M1",
+      "rule": "Reject with unsupportedOperation before taking descriptor ownership. No ambiguous borrowed descriptor or child-reaping semantics."
+    }
+  },
+  "events": {
+    "common": [
+      "instanceID",
+      "sequence",
+      "state"
+    ],
+    "started": [
+      "childPID",
+      "effectiveTerminalSize"
+    ],
+    "sizeChanged": [
+      "columns",
+      "rows",
+      "pixelWidth",
+      "pixelHeight",
+      "backingScale"
+    ],
+    "terminated": [
+      "rawWaitStatus",
+      "exitCode or signal",
+      "requested",
+      "outputDrained"
+    ],
+    "exitCodes": {
+      "0": "normal completion",
+      "75": "preserve for host-directed TUI relaunch"
+    },
+    "error": [
+      "operation",
+      "stableErrorCode",
+      "sanitizedDescription"
+    ],
+    "closed": [
+      "teardownCompleted"
+    ]
+  },
+  "ownership": {
+    "host": "Owns controller and adds its view to the native hierarchy; retains through close completion. SwiftUI makeNSView creates once, updateNSView only updates layout, dismantleNSView requests close.",
+    "component": "Owns terminal engine, child PTY, master descriptor, child-reaping authority, I/O queues, parser work, timers, observers, renderer and resources. Does not own NSApplication, the host window or business services.",
+    "mainThread": "Creation, view hierarchy, keyboard, size requests, state transitions and all public callbacks. AppKit main runloop must run until close completes; never synchronously join worker or GPU work on it.",
+    "workerThreads": "Bounded I/O/parser work; callbacks marshal to the instance main-thread event stream. Cancellation drains work already accepted before releasing state.",
+    "gpu": "A submitted command retains every resource it references until completion. No slot reuse or resource destruction merely because close was requested.",
+    "isolation": "Explicit component bundle, preferences and storage roots, no updater registration, standard iTerm2 preferences import, production services, login item, credential migration, global signal handler or host-child reaping. Two instances share immutable resources only."
+  },
+  "capabilities": {
+    "declaration": "Metadata is not a positive path probe. Each capability reports unsupported, declared-unprobed or probed with evidence and instance identity.",
+    "currentImplementedComponentCapabilities": [
+      "in-process AppKit view with CPU rendering",
+      "explicit child PTY launch and environment",
+      "bounded raw terminal input",
+      "native keyboard, focus, bracketed UTF-8 paste and SGR mouse",
+      "cell and pixel resizing at measured backing scale",
+      "two isolated terminal instances",
+      "actual raw wait status and asynchronous teardown"
+    ],
+    "experimentalImageGPUDefault": false,
+    "experimentalImageGPU": "Separate opt-in qualification after baseline M1; do not infer any Cardo improvement from image microbenchmarks.",
+    "sharedIOSurface": "unsupported-and-not-required-for-M1",
+    "businessCommands": "Not provided by terminal. Cardo owns a structured, instance-correlated channel separate from PTY bytes."
+  },
+  "packagingGate": [
+    "Compile and link a distinct native host against the versioned component",
+    "Enumerate exact runtime frameworks, libraries, resources, shaders, helpers, entitlements and licenses for the actual artifact",
+    "Positive fixture rendering and interaction evidence on the developer-designated VM",
+    "Verify normal exit, code 75, requested stop, close during activity, two instances and repeated teardown",
+    "Measure child, descriptor and GPU retention after teardown; separate fixture-only tests from component/UI results",
+    "Corresponding sources, reproducible build command, immutable artifact and SHA-256 manifest"
+  ]
+}

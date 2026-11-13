@@ -1,0 +1,32 @@
+M1 qualification plan — developer-designated UTM VM macOS, ofleurigeon@macos.local
+
+1. Build a distinct AppKit host using only the public SDK header, module map and dylib.
+   Expected: no private engine headers or source paths in the host compile command.
+2. Launch two fixture processes in real PTYs in that host, with explicit environment and cwd.
+   Expected: two independent instance UUIDs, started events and live fixture children.
+3. Inspect the VM window and capture it with vmctl after a positive Screen Recording probe.
+   Expected: two rendered ANSI/RGB/Unicode fixtures, alternate screen and CPU renderer.
+4. Use vmctl clicks, keyboard, arrows, modifiers and native text-field focus transitions.
+   Expected: decoded input appears only in the focused terminal; native text remains native.
+5. Paste multiline Unicode through the host Edit menu, then click the fixture.
+   Expected: bracketed-paste delimiters and negotiated SGR mouse input; no cross-instance input.
+6. Resize the window rapidly and narrowly with vmctl; return to normal bounds.
+   Expected: positive cell counts, matching fixture TIOCGWINSZ reports and final SDK metrics;
+   pixel dimensions reflect the measured backing scale, not an assumed Retina factor.
+7. Send Ctrl-D through the keyboard to alpha and beta.
+   Expected: exactly one exit event per instance, actual exit codes 0 and 75, no implicit restart.
+8. Create another pair; close the window during activity.
+   Expected: owned children reaped, I/O and parser callbacks drained, exactly one closed event
+   per instance before window destruction; no callback after closed or unrelated process stop.
+9. Repeat at least twelve pair lifecycles in the same host process.
+   Expected: bounded descriptors and memory after warm-up; no surviving fixture children.
+10. Exercise API errors and created/starting/running/exited close states in the VM.
+    Expected: stable errors, idempotent stop, close timeout reported honestly without fake success.
+11. Run focused ModernTests with Address Sanitizer and the standalone fixture tests.
+    Expected: raw wait statuses, owned waiter and explicit environment pass independently.
+12. Package the exact tested SDK and demo, sources, dependencies, licenses and hashes.
+    Expected: immutable version directory; distinguish API, synthetic UI and untested capabilities.
+
+UI evidence is collected exclusively in the assigned VM using docs/vm-qa.md.
+API-driven input and resizing do not qualify AppKit keyboard, mouse, focus or screenshots.
+M1 remains incomplete until all required cases have recorded positive evidence.

@@ -138,6 +138,7 @@ typedef NS_OPTIONS(NSUInteger, iTermJobManagerAttachResults) {
 - (BOOL)closeFileDescriptor;
 
 @optional
+- (pid_t)waitForOwnedProcess:(pid_t)pid status:(int *)status options:(int)options;
 // Attach to the server before an iTermTask exists.
 - (void)asyncPartialAttachToServer:(iTermGeneralServerConnection)serverConnection
                      withProcessID:(NSNumber *)thePid
@@ -156,6 +157,11 @@ typedef NS_OPTIONS(NSUInteger, iTermJobManagerAttachResults) {
 @end
 
 @interface PTYTask : NSObject<iTermLogging, iTermWorkingDirectoryProvider>
+
+@property(nonatomic) BOOL launchWithExplicitEnvironment;
+@property(nonatomic, copy) void (^processExitHandler)(NSNumber *rawStatus);
+@property(nonatomic, readonly, copy) pid_t (^ownedProcessWaiter)(pid_t pid, int *status, int options);
+@property(nonatomic, copy) void (^launchResultHandler)(iTermJobManagerForkAndExecStatus status, NSNumber *errorCode);
 
 @property(atomic, readonly) BOOL hasMuteCoprocess;
 @property(atomic, weak) id<PTYTaskDelegate> delegate;

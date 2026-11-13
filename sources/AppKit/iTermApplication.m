@@ -122,6 +122,8 @@ static void iTermInstallCrashOnExceptionHook(void) {
 @property(nonatomic, strong, readwrite) NSWindow *it_windowBecomingKey;
 @end
 
+static id sEmbeddedApplicationContext;
+
 @implementation iTermApplication {
     BOOL _it_characterPanelIsOpen;
     BOOL _it_characterPanelShouldOpenSoon;
@@ -146,7 +148,16 @@ static void iTermInstallCrashOnExceptionHook(void) {
     [self removeObserver:self forKeyPath:@"modalWindow"];
 }
 
++ (void)registerEmbeddedApplicationContext:(id)context {
+    ITAssertWithMessage([NSThread isMainThread] && context != nil && sEmbeddedApplicationContext == nil,
+                       @"Embedded application context must be registered once on the main thread");
+    sEmbeddedApplicationContext = context;
+}
+
 + (iTermApplication *)sharedApplication {
+    if (sEmbeddedApplicationContext) {
+        return sEmbeddedApplicationContext;
+    }
     __kindof NSApplication *sharedApplication = [super sharedApplication];
     assert([sharedApplication isKindOfClass:[iTermApplication class]]);
     static dispatch_once_t onceToken;

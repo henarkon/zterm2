@@ -432,6 +432,7 @@ backgroundColor:(nullable NSColor *)backgroundColor;
 // update the tab and window titles, stop "tail find" (searching the live session repeatedly
 // because the find window is open), and evaluating partial-line triggers.
 @property(nonatomic, assign) BOOL active;
+@property(nonatomic, assign) BOOL embeddedHost;
 
 @property(nonatomic, assign) BOOL alertOnNextMark;
 // Prevents the pane from being dragged or detached.

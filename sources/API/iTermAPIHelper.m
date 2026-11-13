@@ -73,6 +73,7 @@ NSString *const iTermAPIHelperDidDetectChangeOfPythonAuthMethodNotification = @"
 NSString *const iTermAPIHelperFunctionCallErrorUserInfoKeyConnection = @"iTermAPIHelperFunctionCallErrorUserInfoKeyConnection";
 
 static iTermAPIHelper *sAPIHelperInstance;
+static BOOL sDisabledForEmbeddedHost;
 static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
 
 @interface iTermAllObjectsSubscription : NSObject
@@ -386,7 +387,18 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
 
 }
 
++ (BOOL)disableForEmbeddedHost {
+    if (![NSThread isMainThread] || sAPIHelperInstance != nil) {
+        return NO;
+    }
+    sDisabledForEmbeddedHost = YES;
+    return YES;
+}
+
 + (instancetype)sharedInstance {
+    if (sDisabledForEmbeddedHost) {
+        return nil;
+    }
     if (!sAPIHelperInstance) {
         sAPIHelperInstance = [[self alloc] initWithExplicitUserAction:NO];
     }
@@ -394,6 +406,9 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
 }
 
 + (instancetype)sharedInstanceFromExplicitUserAction {
+    if (sDisabledForEmbeddedHost) {
+        return nil;
+    }
     if (!sAPIHelperInstance) {
         sAPIHelperInstance = [[self alloc] initWithExplicitUserAction:YES];
     }
@@ -679,6 +694,9 @@ static BOOL iTermAPIHelperLastApplescriptAuthRequiredSetting;
 }
 
 - (instancetype)initWithExplicitUserAction:(BOOL)force {
+    if (sDisabledForEmbeddedHost) {
+        return nil;
+    }
     self = [super init];
     if (self) {
         if (![NSApp isRunningUnitTests]) {

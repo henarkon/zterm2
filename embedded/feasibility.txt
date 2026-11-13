@@ -1,0 +1,229 @@
+zterm2 embarqué pour Cardo — frontière et réception M1
+
+État courant : M1 QUALIFIÉ dans la VM UTM macOS désignée, le 13 novembre 2026.
+Le composant 0.2.0 embarque le vrai moteur dans une bibliothèque dynamique,
+avec un en-tête public et un hôte AppKit distinct. L’hôte se compile sans
+headers privés. integration.txt définit l’API expérimentale implémentée ;
+contract-proposal.json conserve la proposition plus large sans la déclarer
+entièrement réalisée. Le paquet qualifié est dist/v0.2.0 ; qualification.json
+et son manifeste relient les preuves aux binaires effectivement exécutés.
+
+Les trois autorisations vmctl sont positives dans la VM ; les interactions
+synthétiques et les captures ont été réalisées uniquement dans cette VM.
+Les sept cas UI passent : rendu RGB/Unicode, clavier/flèches/Option, focus
+entre deux terminaux et champ natif, collage Unicode multilignes encadré,
+appuis/relâchements souris SGR, redimensionnements jusqu’à 30 colonnes et
+fermetures naturelles 0/75 puis fermeture de fenêtre pendant l’activité.
+Les deux enfants sont récupérés avant le démontage, sans redémarrage implicite,
+avec un seul événement closed par instance. L’hôte termine avec statut zéro.
+Le focus souris est explicitement rattaché à la fenêtre étrangère de l’hôte.
+
+Les essais API sur les mêmes binaires passent douze paires dans un processus,
+24 instances, fermetures avant/pendant lancement, entrées séparées, erreurs
+attendues et tailles cellules/pixels à backingScale=2. Les huit dernières
+mesures restent à onze descripteurs. Les mesures résidentes sont diagnostiques,
+pas une preuve d’absence de toute fuite. 51 tests ModernTests de lecture PTY
+et de cycle de vie passent avec Address Sanitizer ; onze tests indépendants
+de fixture passent. La correction UI finale est couverte par les essais VM.
+
+arm64 et rendu CPU uniquement ; GPU Kitty expérimental désactivé. IME complet,
+IOSurface, multi-écran, copie riche et distribution notariée sont différés.
+macOS 13 reste la cible de compilation ; seul macOS 26.6.2 est qualifié ici.
+Les ressources utilisent encore le bundle principal de l’hôte. Le minimum de
+largeur de sa barre native contraint l’essai étroit ; deux colonnes en UI ne
+sont pas revendiquées. Les sources fonctionnelles restent locales et non
+publiées ; l’autorisation initiale de publication portait sur trois documents.
+
+Le reste de ce document conserve l’étude initiale et ses constats antérieurs
+à l’implémentation. Le paquet dist/v0.1.0-embedded-study.1 reste immuable et ne
+constitue pas une livraison M1. Le plan courant est dans
+tests/zterm2_embedded/qualification-plan.txt ; aucun résultat UI n’est déduit
+de la seule compilation ou des tests de la fixture.
+
+Propriété et base
+
+Ligne CPS : zterm2-for-cardo, scope racine .
+Topic : zterm2-embedded-for-cardo.
+La déclaration documentaire seule a été publiée sur origin/master :
+5dd7f993abf49f5ca22bab3a22258faea14aee18.
+Les sources applicatives héritent de 281695ed61cb5200c13832d8f6de1d65c2cb66da.
+Le correctif GPU dist/v0.1.2/candidate.patch n’a pas été appliqué à cette session.
+La session GPU, Cardo et Vigil ne sont pas modifiés par ce travail.
+
+Frontière observée
+
+1. SessionView est le conteneur AppKit, pas un terminal autonome.
+   sources/TerminalView/SessionView.h:27 importe PTYSession, la recherche,
+   les vues de statut et les types d’écran. SessionView.m:17 importe Metal,
+   et SessionView.m:41 importe aussi PTYTab et PTYWindow.
+
+2. PTYSession orchestre réellement la pile terminal.
+   sources/PTYSession/PTYSession.m:971, initSynthetic:, crée PTYTask,
+   VT100Screen, variables, profils automatiques, cadence et glue Metal.
+   setScreenSize:parent: à la ligne 2943 environ crée SessionView,
+   TextViewWrapper et PTYTextView, relie écran et délégués et calcule les
+   cellules à partir des métriques de police et des marges.
+   Le parent suit WindowControllerInterface ; PTYTab reste le délégué usuel.
+   Un adaptateur doit remplacer les services applicatifs réellement employés,
+   pas seulement réaffecter la propriété view.
+
+3. L’émulation est réutilisable en principe, mais pas livrée comme module isolé.
+   VT100Parser.m:15, VT100Terminal.m:6 et VT100Screen.m:11 importent le header
+   Swift généré de toute la bibliothèque iTerm2SharedARC. VT100Screen importe
+   aussi PTYTextView, préférences, historique et notifications.
+   Le parcours réel est PTYTask -> PTYSession -> parser/terminal/état d’écran
+   -> grille -> PTYTextView/renderer ; React/OpenTUI reste le producteur ANSI.
+
+4. Lancement et identité exigent un contrat propre au composant.
+   PTYTask.m:299 propose déjà chemin, arguments et environnement séparés.
+   Mais la branche runJobsInServers à la ligne 314 peut relancer l’exécutable
+   de NSBundle.mainBundle avec --server. L’hôte distinct ne doit pas hériter
+   implicitement de ce protocole interne. Le répertoire doit devenir une
+   entrée explicite et validée, indépendante du cwd de Cardo.app.
+   iTermUserDefaults.setCustomSuiteName doit précéder tout accès aux réglages.
+   NSFileManager+iTerm.m:114 utilise l’identité du bundle pour les caches,
+   et applicationSupportDirectory utilise la suite ou le nom d’exécutable.
+   Cela fournit des points d’isolation utiles, sans qualifier toutes les
+   écritures, migrations ou initialisations transitives de l’application.
+
+5. Fin de processus et fermeture ne se réduisent pas à retirer la vue.
+   PTYSession.m:4251, terminate, peut conserver la session pour Undo Close,
+   puis passer par iTermController et ses sessions restaurables.
+   hardStop est exposé mais son enchaînement avec terminate doit être testé.
+   TaskNotifier.m:515 reçoit le statut waitpid et ne le transmet pas à une
+   API publique corrélée à la session. ChildReaper.swift:138 reçoit aussi
+   ce statut, mais son callback didReap ne livre qu’un pid et un booléen.
+   PTYTaskDelegate.brokenPipe ne fournit pas un code de sortie.
+   Pour garantir 0 et 75, il faut prolonger l’autorité de reaping existante ;
+   un second waitpid dans l’adaptateur introduirait une course et est exclu.
+   La fermeture doit aussi attendre les lectures, le parseur, les callbacks
+   et, lorsque Metal est utilisé, la fin des commandes GPU soumises.
+
+6. Le renderer dépend actuellement des ressources de l’application.
+   MetalRenderer/Infrastructure/iTermMetalRenderer.m:230 emploie
+   newDefaultLibrary dans une initialisation statique. Un composant doit
+   résoudre explicitement son bundle et sa bibliothèque de shaders.
+   Le chemin image GPU expérimental reste désactivé ; le rendu texte de base
+   et le transport IOSurface sont des décisions et qualifications distinctes.
+
+Mesures de structure, limites de la méthode
+
+Le projet Xcode contient 220 entrées de compilation dans iTerm2Shared et
+1 717 dans iTerm2SharedARC. La cible application porte 656 entrées de ressources,
+des shaders, des frameworks, des auxiliaires et des services XPC.
+L’audit conserve les listes de fichiers et les relations de cibles dans
+boundary.json ; elles décrivent l’application actuelle, pas un SDK minimal.
+La bibliothèque commune compile aussi les fonctions navigateur et Companion.
+
+L’audit explore les imports locaux cités et leurs implémentations de même
+répertoire. Ses huit points d’entrée rejoignent chacun 1 838 fichiers locaux.
+C’est une enveloppe conservatrice et cyclique, pas le nombre minimal de
+fichiers à extraire, ni une preuve de dépendance de linkage ou d’exécution.
+Les imports Swift et références dynamiques ne sont pas parcourus, et les noms
+ambigus ne sont pas résolus arbitrairement.
+
+Les deux bibliothèques iTerm2SharedARC et iTerm2Shared ainsi que le framework
+iTermSwiftPackages ont été réellement construits en Development arm64 avec
+Xcode 27.2 (27B52), après reconstruction des dépendances natives de ce checkout.
+Les archives statiques font respectivement 311 895 840 et 25 587 264 octets.
+Ces produits de construction ne sont pas un SDK terminal et ne sont pas
+distribués dans le paquet de prérequis. Le rapport conserve leurs empreintes.
+Les premiers échecs (index Xcode, dépendances anciennes, modules manquants)
+ont été résolus ; ils ne sont pas des preuves d’impossibilité d’extraction.
+
+La sonde d’import Objective-C externe compile SessionView.h sous macOS 13+
+avec les chemins de headers explicites. Sa réussite prouve seulement que
+les types peuvent être importés ; elle ne construit ni ne lance une vue.
+
+Comparaison de trajectoires
+
+Composant dans un hôte macOS distinct :
+- Répond à la destination Cardo.app et laisse le métier dans Cardo.
+- Réutilise parser, écran et renderer, avec une façade publique réduite.
+- Exige une frontière de services, le statut de fin de processus corrélé,
+  un arrêt avec barrière, des ressources explicites et un graphe de build.
+- Ne peut pas être déclaré disponible sur la seule base d’une compilation
+  des bibliothèques communes ou d’une vue déplacée hors de son PTYTab.
+
+Application zterm2 spécialisée :
+- Réutilise l’initialisation, les fenêtres, les profils et les ressources
+  du produit entier ; évite d’abord l’extraction de ces responsabilités.
+- Conserve les 1 937 entrées des deux bibliothèques communes et le packaging
+  applicatif actuel ; le couplage navigateur/Companion reste présent au build.
+- Les surfaces natives seraient ajoutées à cette application spécialisée,
+  avec identité, préférences et mises à jour propres à qualifier.
+- Ne livre pas le composant demandé à une application Cardo distincte.
+  Ce repli n’est ni implémenté ni substitué à M1 dans ce dossier.
+
+Conclusion de faisabilité : l’extraction sûre dépasse un simple adaptateur
+AppKit. Ces faits justifient un chantier de modularisation préalable ; ils ne
+prouvent pas une impossibilité et ne fondent pas une estimation de durée.
+La trajectoire composant reste la cible. Les premières modifications du moteur
+doivent traiter son contexte hôte et la propagation du statut de reaping avant
+de promettre un contrat de lancement/fermeture à Cardo.
+
+Contrat et fixture livrés à ce stade
+
+contract-proposal.json est une proposition versionnée, explicitement non
+implémentée. Elle définit opérations, erreurs, état par instance, propriété,
+threads, backpressure, dimensions points/cellules/pixels et démontage.
+Il n’existe encore aucune version publiée de composant ou capacité sondée.
+
+La fixture native se construit avec :
+  clang -std=c11 -Wall -Wextra -Werror -mmacosx-version-min=13.0 \
+    tests/zterm2_embedded/fixture.c -o /tmp/zterm2-fixture
+Invocation structurée : exécutable /tmp/zterm2-fixture, argv [INSTANCE, 0|75].
+Elle doit recevoir un PTY. Ctrl-D fait retourner le code choisi ; SIGTERM
+produit un arrêt demandé. Elle active écran alternatif, collage encadré,
+souris SGR et couleurs RVB, affiche Unicode et les octets reçus en hexadécimal.
+Ses événements SIZE donnent colonnes, lignes et dimensions de TIOCGWINSZ.
+Son exécution ne nécessite ni LLM, réseau, Python ni Homebrew.
+
+Exécuter le banc de fixture :
+  python3 -B -m unittest discover -s tests/zterm2_embedded -v
+Python et clang sont des outils du banc de développement, pas des dépendances
+d’exécution du futur composant. Onze tests vérifient la fixture sous PTY,
+dont codes 0/75, SIGTERM, fermeture du master, deux instances, douze cycles,
+collage fragmenté/long et rafales de tailles. La comparaison termios exclut
+uniquement PENDIN, indicateur transitoire géré par le noyau macOS.
+Les tests de souris/Option injectent des octets attendus ; ils ne vérifient
+pas le mapping des événements AppKit. La vérification de descripteurs porte
+sur le processus du banc ; elle ne mesure pas de ressources zterm2 ou GPU.
+
+Plan de réception à exécuter sur une VM désignée
+
+01. Construire l’hôte distinct et charger le composant versionné.
+    Attendu : vraie vue zterm2, aucune application terminal externe lancée.
+02. Lancer deux fixtures avec identifiants alpha et beta et environnements
+    explicites. Attendu : PTY, événements et entrées indépendants.
+03. Observer ANSI, Unicode combiné, caractères CJK, emoji et couleurs.
+    Attendu : rendu du vrai moteur ; comparaison au contenu déterministe.
+04. Saisir des accents, Option, flèches et raccourcis retenus.
+    Attendu : octets attendus par la fixture et focus conservé.
+05. Basculer terminal/contrôle natif, coller du texte long et multilignes.
+    Attendu : destination unique, collage encadré intact, pas de relance PTY.
+06. Cliquer et déplacer la souris. Attendu : protocole négocié correct.
+07. Redimensionner rapidement jusqu’à deux colonnes, puis revenir.
+    Attendu : dernières cellules/pixels appliqués, pas d’entrée croisée.
+08. Vérifier police, marges et échelle Retina avec SIZE et backingScale.
+    Attendu : pixels physiques distincts des points, aucune taille nulle.
+09. Faire retourner 0, puis 75. Attendu : code réel corrélé et événement
+    unique, sans relance automatique ni arrêt d’un service partagé.
+10. Fermer pendant activité et pendant lancement. Attendu : barrière de
+    fermeture idempotente, enfant reaped, zéro callback après closed.
+11. Répéter créations/fermetures et chercher enfants, descripteurs, timers
+    et ressources retenus. Attendu : retour à la base après barrière.
+12. Compléter manuellement IME, copie riche, accessibilité et multi-écrans.
+    Attendu : résultats séparés avec limites et observations datées.
+
+Tous ces cas de composant/UI restent NON EXÉCUTÉS. Aucune VM n’a encore été
+désignée dans ce chat au moment de la préparation de ce dossier. Les règles
+CLAUDE.md et docs/vm-qa.md interdisent de piloter l’UI du Mac du développeur.
+
+Production du dossier de preuves de prérequis, dans un dossier neuf :
+  python3 -B tools/zterm2_embedded/package_prerequisites.py SORTIE_NEUVE
+Le paquet contient sources, correctif Git limité, fixture, tests, audit et
+manifeste SHA-256. qualification.json conserve explicitement m1.passed=false.
+Les reconstructions locales de dépendances restent hors du correctif des
+prérequis et ne constituent pas un composant distribué. Les licences copiées
+sont celles du dépôt ; l’inventaire juridique d’un futur SDK reste à établir.

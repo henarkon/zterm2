@@ -1,0 +1,72 @@
+Observed build recipe for the arm64 embedded component
+
+Prerequisites: Xcode 27.2 (27B52), its macOS SDK and Metal toolchain, the repository's
+native build tools, and Rust 1.99.1 with the aarch64-apple-darwin target. These are
+development dependencies; the delivered demo does not need Homebrew or Rust at runtime.
+The deployment target is macOS 13; execution is qualified only on the recorded VM OS.
+
+Reconstruct the sources from corresponding-sources/base.tar.gz and embedded.patch.
+Extract each submodule archive at the path in pins.json (the archives contain its
+pinned sources, without Git metadata). Restore railroad-Cargo.lock to
+submodules/railroad_dsl/Cargo.lock. A normal checkout can instead initialize its
+pinned submodules with git submodule update --init --recursive.
+
+From the reconstructed source root, use a fresh task-specific build directory:
+  make -j1 fatlibsixel CoreParse NMSSH bindeps libgit2 sparkle \
+    BUILD_DIR=/private/tmp/zterm2-rebuild/dependencies
+  CODESIGN_IDENTITY=- make -j1 pwmadapters \
+    BUILD_DIR=/private/tmp/zterm2-rebuild/dependencies
+  CARGO_PROFILE_RELEASE_STRIP=none CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_STRIP=none \
+    rustup run 1.99.1 cargo build --manifest-path submodules/railroad_dsl/Cargo.toml \
+    --locked --release --target aarch64-apple-darwin
+  cp submodules/railroad_dsl/target/aarch64-apple-darwin/release/librailroad_dsl.dylib \
+    ThirdParty/librailroad_dsl/lib/librailroad_dsl.dylib
+  cp submodules/railroad_dsl/include/railroad_dsl.h ThirdParty/librailroad_dsl/include/
+  install_name_tool -id @rpath/librailroad_dsl.dylib \
+    ThirdParty/librailroad_dsl/lib/librailroad_dsl.dylib
+
+Use the pinned Rust toolchain for that last command. An isolated rustup installation
+can be selected with its own RUSTUP_HOME/CARGO_HOME.
+The observed environment required direct Cargo HTTP access (CARGO_HTTP_PROXY empty).
+Do not add authentication to a failing corporate proxy or substitute credentials.
+The no-strip settings avoid a mismatched LLVM objcopy in that toolchain.
+The artifact also includes cargo-vendor.tar.gz, produced by cargo vendor --locked
+--offline from the observed dependency lock, and exact Swift package source archives
+with revision pins. To build Rust offline, extract cargo-vendor, add --offline and
+pass Cargo --config source.crates-io.replace-with=\"vendored-sources\" plus
+--config source.vendored-sources.directory=\"/absolute/path/to/cargo-vendor\".
+Quote each complete --config value for the calling shell. The Swift package archives
+provide the corresponding sources; Xcode can resolve their recorded revisions using
+the included Package.resolved when constructing a fresh package cache.
+
+  xcodebuild -jobs 2 -project iTerm2.xcodeproj -target iTerm2 \
+    -configuration Development -sdk macosx \
+    -clonedSourcePackagesDirPath /private/tmp/zterm2-rebuild/packages \
+    SYMROOT=/private/tmp/zterm2-rebuild/products \
+    OBJROOT=/private/tmp/zterm2-rebuild/objects \
+    SHARED_PRECOMPS_DIR=/private/tmp/zterm2-rebuild/precompiled \
+    GCC_PRECOMPILE_PREFIX_HEADER=NO \
+    INDEX_DATA_STORE_DIR=/private/tmp/zterm2-rebuild/index \
+    COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO ARCHS=arm64 \
+    ONLY_ACTIVE_ARCH=YES build > /private/tmp/zterm2-rebuild-engine.log 2>&1
+
+Require BUILD SUCCEEDED before using the engine linker invocation from that log:
+  python3 -B tools/zterm2_embedded/build_native_host.py \
+    /private/tmp/zterm2-rebuild-host \
+    --products /private/tmp/zterm2-rebuild/products/Development \
+    --header-map /private/tmp/zterm2-rebuild/objects/iTerm2.build/Development/iTerm2SharedARC.build/iTerm2SharedARC-project-headers.hmap \
+    --engine-link-log /private/tmp/zterm2-rebuild-engine.log
+
+That script does not launch any application. It creates a separate ad-hoc-signed host,
+the SDK library and public module, exact commands, and dependency/signature reports.
+Do not run the resource-template iTerm2.app or install it as the standard terminal.
+For all UI testing, use only the explicitly assigned VM and docs/vm-qa.md.
+Launch ZTermEmbeddedDemo with -suite zterm2 and -ApplePersistenceIgnoreState YES.
+--api-qualification runs the twelve-pair API suite; omission leaves the native UI
+available for keyboard, focus, mouse, paste and screenshot qualification.
+
+The engine's existing generated dependency-graph warnings and the host machine's
+CoreDevice/CoreSimulator diagnostics are recorded in evidence/engine-build.log.
+They did not prevent the macOS build. No claim of bit-identical rebuilds is made:
+local debug paths, linker UUIDs and ad-hoc signatures can vary. Verify behavior again
+on rebuilt binaries and correlate all qualification evidence with their SHA-256.

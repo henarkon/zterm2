@@ -1,0 +1,96 @@
+zterm2 embedded 0.2.0 — native host integration
+
+This experimental component embeds the real PTYSession, VT100Screen and PTYTextView
+engine in another AppKit application. It owns neither NSApplication nor the host
+window. M1 is qualified on the designated UTM VM; see dist/v0.2.0/qualification.json.
+The CPU/arm64 scope and deferred capabilities below remain explicit.
+
+Build
+  Build the repository's iTerm2 target in Development for arm64, with signing disabled,
+  into a separate products directory. Do not launch or install that application.
+  Run tools/zterm2_embedded/build_native_host.py OUTPUT --products PRODUCTS
+    --header-map HEADER_MAP --engine-link-log SUCCESSFUL_ENGINE_BUILD_LOG
+  The script compiles the adapter, links the actual engine libraries into
+  libZTermEmbedded.dylib and builds a separate ZTermEmbeddedDemo.app.
+  Host compilation imports only the public module, AppKit and Foundation.
+  The build report records exact link and compile commands. Rebuild dependencies
+  according to the repository Makefile before building with a newer Xcode.
+
+Runtime layout
+  Add component/include to the consumer's header/module search path and link
+  libZTermEmbedded.dylib. Its install name is @rpath/libZTermEmbedded.dylib.
+  Copy the demo's Contents/Frameworks, Contents/Resources, Contents/XPCServices and
+  the ShellLauncher/iTermServer helpers to the equivalent host bundle locations.
+  Framework symlinks must remain intact. The original iTerm2 executable is excluded.
+  This first extraction uses the host's main bundle for engine resources. It is not
+  yet an independently relocatable resource bundle. Resource names and Objective-C
+  engine classes must not collide with another engine in the same process.
+  No runtime Homebrew installation is needed. The complete dependency inventory,
+  licenses and minimum OS declarations belong to the delivered artifact.
+  The demo is locally ad-hoc signed; distribution signing/notarization is deferred.
+
+AppKit
+  Run all public operations and callbacks on the main thread with its runloop active.
+  Call prepareCPUPrototypeRuntime(suiteName:) once before creating any terminal.
+  Choose a unique suite beginning org.henarkon.zterm2.embedded. The process must not
+  already contain an initialized standalone iTerm application or Python API server.
+  This prepares a CPU renderer and task monitors, disables session servers and the
+  standalone Python API server, and leaves NSApplication's actual delegate intact.
+  Unsupported persisted renderer/server settings cause an incompatibleRuntime error.
+  Create ZTermEmbeddedController(width:height:), retain it, add it as a child controller
+  and put its view in the host's hierarchy with constraints or an autoresizing mask.
+  Set eventHandler before launchExecutable(_:arguments:environment:workingDirectory:).
+  Arguments are literal strings excluding argv[0]; no shell is inserted. Executable
+  and cwd must be absolute existing file URLs. Environment is explicit; PWD is set
+  from cwd. The process does not inherit the host's login-shell environment.
+  The host's Edit menu can route copy:/paste: through the responder chain.
+  The embedded profile explicitly enables negotiated xterm mouse reporting for TUIs;
+  this differs from the standalone profile default and does not change its settings.
+  focusTerminal() transfers focus to the real PTYTextView. refreshLayout() reapplies
+  font-derived cells and backing scale after host layout changes. terminalMetrics
+  reports cells and pixel dimensions. PTY resize updates are asynchronously coalesced;
+  metrics alone do not prove that the child has observed the corresponding ioctl.
+
+Input and observation
+  sendInput accepts raw terminal bytes, at most 4096 bytes per call. It returns the
+  accepted byte count or an error before enqueueing. wouldBlock means retry later
+  without blocking the main thread. Byte acceptance does not mean child consumption.
+  Raw sendInput is distinct from negotiated paste through the view's responder chain.
+  copyText(maximumCharacters:) explicitly reads the current terminal text, including
+  available history; the returned suffix is limited to 1..1048576 characters. This is
+  a text-model observation, not a screenshot or proof of glyph rendering. Do not log
+  real terminal contents unless the host explicitly requests it.
+
+Events and ownership
+  Each dictionary event includes instance (UUID string), sequence (monotonic integer),
+  version and event. Delivery occurs on the main thread. Events are:
+    started: childPID and metrics; fork/launcher success, not an exec acknowledgment.
+    launchFailed: engine status code and optional systemError.
+    processExited: rawStatus, exitCode or signal, and requested.
+    terminationStatusUnavailable: wait status could not be obtained; not a normal exit.
+    closeTimedOut: the close barrier has not completed within five seconds.
+    closed: the owned child has been reaped, I/O deregistered, parser work drained and
+      engine termination observed; the session/view resources have been released.
+  Exit code 75 is preserved for a host-directed relaunch; the component never restarts
+  a process implicitly. A controller launches once. Create another for a new process.
+  requestStop() is idempotent and asynchronous, and works before/during/after launch.
+  Retain the controller until closed. On natural exit, call requestStop() to release
+  the view. Keep the host window/runloop alive until every owned controller is closed.
+  A timeout is diagnostic and does not authorize premature release or force killing.
+  The component signals/reaps only its owned job; it never shuts down shared services.
+  Use the sequence and UUID to reject stale events. No event follows closed.
+
+SwiftUI
+  Use NSViewControllerRepresentable. Create once in makeNSViewController; retain the
+  controller in a host coordinator through asynchronous close. updateNSViewController
+  changes layout only. Before removing the containing window, requestStop and wait
+  for closed. dismantleNSViewController may request stop, but must not be the only
+  owner of the controller or block the main thread waiting for completion.
+
+Limits
+  arm64 only. Deployment target is macOS 13; actual tested OS versions are listed in
+  qualification.json. Do not infer support for untested OS versions or architectures.
+  CPU rendering only in this milestone; experimental Kitty GPU, shared IOSurface,
+  process reattachment, rich copy, full IME and multiple-display qualification are
+  deferred. No Cardo/Vigil business command protocol is carried by the PTY. The host
+  owns any structured, authenticated business channel separately.

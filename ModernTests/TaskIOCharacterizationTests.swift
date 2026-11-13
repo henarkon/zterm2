@@ -1339,6 +1339,74 @@ class TaskIOCharacterizationTests: XCTestCase {
 
 // Runs every test above with a ChildReaper doing the reaping instead of the dead pool.
 class TaskIOCharacterizationWithChildReaperTests: TaskIOCharacterizationTests {
+    func testOwnedWaiterReportsStatusWithoutUsingDefaultWaiter() throws {
+        let signal = Signal()
+        var receivedStatus: Int32?
+        var usedDefaultWaiter = false
+        var ownedWaitCount = 0
+        let child = try spawn("/bin/sh", ["-c", "exit 75"])
+        let reaper = ChildReaper(didReap: nil, waitpid: { _, _, _ in
+            signal.notify { usedDefaultWaiter = true }
+            errno = ECHILD
+            return -1
+        }, queue: DispatchQueue(label: "embedded-owned-wait-test", qos: .userInteractive))
+        reaper.reap(child, waiter: { pid, status, options in
+            XCTAssertEqual(pid, child)
+            XCTAssertEqual(options, WNOHANG)
+            signal.notify { ownedWaitCount += 1 }
+            return Darwin.waitpid(pid, status, options)
+        }, completion: { status in
+            signal.notify { receivedStatus = status?.int32Value }
+        })
+        XCTAssertTrue(signal.wait { receivedStatus != nil })
+        signal.notify {
+            XCTAssertFalse(usedDefaultWaiter)
+            XCTAssertGreaterThan(ownedWaitCount, 0)
+            XCTAssertEqual(receivedStatus, 75 << 8)
+        }
+        assertReaped(child)
+    }
+
+    func testRawWaitStatusPreservesNormalAndRelaunchCodes() throws {
+        let signal = Signal()
+        var statuses = [pid_t: Int32]()
+        let reaper = ChildReaper(didReap: nil, queue: DispatchQueue(label: "embedded-exit-code-test", qos: .userInteractive))
+        var children = [(pid_t, Int32)]()
+        for code in [Int32(0), Int32(75)] {
+            let child = try spawn("/bin/sh", ["-c", "exit \(code)"])
+            children.append((child, code))
+            reaper.reap(child) { status in
+                signal.notify { statuses[child] = status?.int32Value ?? -1 }
+            }
+        }
+        XCTAssertTrue(signal.wait { statuses.count == children.count })
+        signal.notify {
+            for (pid, code) in children {
+                XCTAssertEqual(statuses[pid], code << 8)
+                assertReaped(pid)
+            }
+        }
+    }
+
+    func testRawWaitStatusReportsSignalAndUnavailableStatus() throws {
+        let signal = Signal()
+        let reaper = ChildReaper(didReap: nil, queue: DispatchQueue(label: "embedded-exit-signal-test", qos: .userInteractive))
+        let child = try spawn("/bin/cat", [], stdin: .pipe)
+        var receivedStatus: Int32?
+        var unavailable = false
+        reaper.reap(child.pid) { status in
+            signal.notify { receivedStatus = status?.int32Value }
+        }
+        reaper.reap(1) { status in
+            signal.notify { unavailable = status == nil }
+        }
+        kill(child.pid, SIGKILL)
+        close(child.stdin)
+        XCTAssertTrue(signal.wait { receivedStatus != nil && unavailable })
+        signal.notify { XCTAssertEqual((receivedStatus ?? 0) & 0x7f, SIGKILL) }
+        assertReaped(child.pid)
+    }
+
     fileprivate override func makeReaper(didReap: @escaping (pid_t, Bool) -> Void) -> ChildReaper? {
         return ChildReaper(didReap: didReap)
     }

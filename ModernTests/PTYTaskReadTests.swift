@@ -39,6 +39,30 @@ private final class RecordingTaskDelegate: NSObject, PTYTaskDelegate {
 }
 
 final class PTYTaskReadTests: XCTestCase {
+    func testOwnedProcessWaiterDoesNotRetainTask() throws {
+        weak var releasedTask: PTYTask?
+        var waiter: ((pid_t, UnsafeMutablePointer<Int32>?, Int32) -> pid_t)?
+        autoreleasepool {
+            let task = PTYTask()
+            releasedTask = task
+            waiter = task?.ownedProcessWaiter
+        }
+        XCTAssertNil(releasedTask)
+        XCTAssertNotNil(waiter)
+        var status: Int32 = 0
+        XCTAssertEqual(waiter?(0, &status, WNOHANG), -1)
+    }
+
+    func testExplicitEnvironmentDoesNotImportHostValues() throws {
+        let task = try XCTUnwrap(PTYTask())
+        XCTAssertFalse(task.launchWithExplicitEnvironment)
+        task.launchWithExplicitEnvironment = true
+        let result = task.perform(NSSelectorFromString("environWithOverrides:"),
+                                  with: ["ZTERM2_TEST": "fixture", "SHLVL": "9"])
+        let environment = try XCTUnwrap(result?.takeUnretainedValue() as? [String])
+        XCTAssertEqual(Set(environment), Set(["ZTERM2_TEST=fixture", "SHLVL=9"]))
+    }
+
     private var delegate: RecordingTaskDelegate!
 
     override func setUp() {

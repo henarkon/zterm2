@@ -335,6 +335,13 @@ static int iTermTaskUnsafeFileDescriptor(id<iTermTask> task) {
         DLog(@"pid %@ of %@ was already handed to the reaper", @(pid), task);
         return;
     }
+    if (pid == task.pidToWaitOn && [task respondsToSelector:@selector(processExitHandler)] && task.processExitHandler &&
+        [task respondsToSelector:@selector(ownedProcessWaiter)]) {
+        [[iTermChildReaper sharedInstance] reapProcessWithID:pid
+                                                    waiter:task.ownedProcessWaiter
+                                                completion:task.processExitHandler];
+        return;
+    }
     [self reapPid:pid];
 }
 

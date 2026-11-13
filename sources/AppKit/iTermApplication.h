@@ -58,6 +58,7 @@ extern NSNotificationName const iTermApplicationCharacterAccentMenuVisibilityDid
 @interface iTermApplication : NSApplication
 
 + (iTermApplication *)sharedApplication;
++ (void)registerEmbeddedApplicationContext:(id)context;
 
 - (NSArray<NSWindow *> *)orderedWindowsPlusVisibleHotkeyPanels;
 - (NSArray<NSWindow *> *)orderedWindowsPlusAllHotkeyPanels;

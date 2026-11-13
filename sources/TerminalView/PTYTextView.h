@@ -450,6 +450,10 @@ extern const CGFloat PTYTextViewMarginClickGraceWidth;
 // The delegate. Interfaces to the rest of the app for this view.
 @property(nonatomic, assign) id<PTYTextViewDelegate> delegate;
 
+// Foreign hosts own focus through their NSWindow rather than iTermController.
+// Disabled by default to preserve the standalone application's focus policy.
+@property(nonatomic) BOOL usesHostWindowFocus;
+
 // Array of dictionaries.
 @property(nonatomic, copy) NSArray<NSDictionary<NSString *, id> *> *smartSelectionRules;
 

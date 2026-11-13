@@ -4260,7 +4260,7 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     if ([[self textview] isFindingCursor]) {
         [[self textview] endFindCursor];
     }
-    if (_exited && !_shortLivedSingleUse && !_execDidFail) {
+    if (!self.embeddedHost && _exited && !_shortLivedSingleUse && !_execDidFail) {
         [self _maybeWarnAboutShortLivedSessions];
     }
     if (self.tmuxMode == TMUX_CLIENT) {
@@ -4303,7 +4303,8 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
         _tmuxGateway = nil;
     }
     _terminatedAsTmuxClient = wasTmuxClient;
-    BOOL undoable = (![self isTmuxClient] &&
+    BOOL undoable = (!self.embeddedHost &&
+                     ![self isTmuxClient] &&
                      !_shouldRestart &&
                      !_synthetic &&
                      ![[iTermController sharedInstance] applicationIsQuitting]);
@@ -4461,8 +4462,10 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
                [iTermProfilePreferences boolForKey:KEY_ARCHIVE inProfile:self.profile]) {
         archivePath = [self saveArchive];
     }
-    [[iTermController sharedInstance] removeSessionFromRestorableSessions:self
-                                                              archivePath:archivePath];
+    if (!self.embeddedHost) {
+        [[iTermController sharedInstance] removeSessionFromRestorableSessions:self
+                                                               archivePath:archivePath];
+    }
     [_screen mutateAsynchronously:^(VT100Terminal *terminal, VT100ScreenMutableState *mutableState, id<VT100ScreenDelegate> delegate) {
         [terminal.parser forceUnhookDCS:nil];
     }];
@@ -5215,6 +5218,11 @@ webViewConfiguration:(WKWebViewConfiguration *)webViewConfiguration
     // This posts PTYSessionExitedDidChangeNotification, so the sleep-prevention coordinator stops
     // counting this dead-but-open pane as a Prevent Sleep requester.
     [self cleanUpAfterBrokenPipe];
+
+    if (self.embeddedHost) {
+        [self updateDisplayBecause:@"embedded process exited"];
+        return;
+    }
 
     if (_shouldRestart) {
         _modeHandler.mode = iTermSessionModeDefault;
@@ -14652,6 +14660,9 @@ typedef NS_ENUM(NSUInteger, PTYSessionTmuxReport) {
 }
 
 - (BOOL)textViewIsActiveSession {
+    if (self.embeddedHost) {
+        return self.view.window.firstResponder == _textview;
+    }
     return [_delegate sessionIsActiveInTab:self];
 }
 
@@ -24123,7 +24134,7 @@ static const int iTermNestedFramerRecoveryMaximumExtensions = 4;
     // isVisible distinguishes windows that were ordered out (e.g., a hidden hotkey window) from
     // on-screen windows. Without it, a hidden hotkey window with a non-idle session redraws at
     // the full active cadence forever. See the offscreen predicate in -shouldAlert for precedent.
-    state.visible = ([_delegate sessionBelongsToVisibleTab] &&
+    state.visible = ((self.embeddedHost || [_delegate sessionBelongsToVisibleTab]) &&
                      self.view.window.isVisible &&
                      !self.view.window.isMiniaturized);
 
