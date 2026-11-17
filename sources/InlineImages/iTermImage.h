@@ -24,9 +24,13 @@
 @property(nonatomic, readonly) NSSize size;
 @property(nonatomic, readonly) NSSize scaledSize;
 @property(nonatomic, readonly) NSMutableArray<NSImage *> *images;
+// Original raw Kitty input, without an AppKit display representation round-trip.
+// Nil for images decoded through the existing native/compressed-image paths.
+@property(nonatomic, readonly) CGImageRef ztermSourceCGImage;
 
 // Animated GIFs are not supported through this interface.
 + (instancetype)imageWithNativeImage:(NSImage *)image;
++ (instancetype)imageWithCGImage:(CGImageRef)image;
 
 // Decompresses in a sandboxed process. Returns nil if anything goes wrong.
 + (instancetype)imageWithCompressedData:(NSData *)data;

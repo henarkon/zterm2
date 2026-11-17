@@ -33,7 +33,21 @@ static const CGFloat kMaxDimension = 10000;
 @property(nonatomic, strong) NSMutableArray<NSImage *> *images;
 @end
 
-@implementation iTermImage
+@implementation iTermImage {
+    id _ztermSourceCGImageStorage;
+}
+
++ (instancetype)imageWithCGImage:(CGImageRef)cgImage {
+    NSImage *nativeImage = [[NSImage alloc] initWithCGImage:cgImage
+                                                   size:NSMakeSize(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage))];
+    iTermImage *image = [self imageWithNativeImage:nativeImage];
+    image->_ztermSourceCGImageStorage = (__bridge id)cgImage;
+    return image;
+}
+
+- (CGImageRef)ztermSourceCGImage {
+    return (__bridge CGImageRef)_ztermSourceCGImageStorage;
+}
 
 + (instancetype)imageWithNativeImage:(NSImage *)nativeImage {
     iTermImage *image = [[iTermImage alloc] init];

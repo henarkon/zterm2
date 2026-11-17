@@ -146,8 +146,17 @@
     NSMutableDictionary *dictionary = [NSMutableDictionary dictionaryWithCapacity:3];
     [dictionary setObject:(__bridge id)kSecClassGenericPassword forKey:(__bridge id)kSecClass];
 
-    if (self.service) {
-        [dictionary setObject:self.service forKey:(__bridge id)kSecAttrService];
+    NSString *service = self.service;
+    if ([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"org.henarkon.zterm2"]) {
+        NSString *prefix = @"org.henarkon.zterm2:";
+        if (service && ![service hasPrefix:prefix]) {
+            service = [prefix stringByAppendingString:service];
+        } else if (!service) {
+            service = @"org.henarkon.zterm2:unscoped-query-disabled";
+        }
+    }
+    if (service) {
+        [dictionary setObject:service forKey:(__bridge id)kSecAttrService];
     }
 
     if (self.account) {

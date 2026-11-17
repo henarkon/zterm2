@@ -15,6 +15,7 @@
 #import "iTermAttributedStringBuilder.h"
 #import "iTermColorMap.h"
 #import "iTermController.h"
+#import "iTermApplication.h"
 #import "iTermMetalPerFrameState.h"
 #import "iTermTextDrawingHelper.h"
 
@@ -76,7 +77,8 @@ static vector_float4 VectorForColor(NSColor *color) {
     _renderInputs.boldAllowed = asb.boldAllowed;
     _renderInputs.italicAllowed = asb.italicAllowed;
     _showBroadcastStripes = drawingHelper.showStripes;
-    NSColorSpace *colorSpace = textView.window.screen.colorSpace ?: [NSColorSpace it_defaultColorSpace];
+    NSColorSpace *colorSpace = iTermZtermBackgroundTestMode() ? NSColorSpace.displayP3ColorSpace :
+        (textView.window.screen.colorSpace ?: [NSColorSpace it_defaultColorSpace]);
     _processedDefaultBackgroundColor = [[drawingHelper defaultBackgroundColor] colorUsingColorSpace:colorSpace];
     NSColor *colorForMargins = textView.colorForMargins;
     _marginColorEnabled = colorForMargins != nil;
@@ -130,7 +132,7 @@ static vector_float4 VectorForColor(NSColor *color) {
     // Cursor guide
     _cursorGuideEnabled = drawingHelper.highlightCursorLine;
     _cursorGuideColor = drawingHelper.cursorGuideColor;
-    _colorSpace = textView.window.screen.colorSpace ?: [NSColorSpace it_defaultColorSpace];
+    _colorSpace = colorSpace;
 
     // Background image
     _backgroundImageBlend = [glue backgroundImageBlend];

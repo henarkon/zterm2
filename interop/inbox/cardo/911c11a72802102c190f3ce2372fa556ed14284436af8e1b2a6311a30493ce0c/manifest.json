@@ -1,0 +1,11 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "producer": "cardo",
+  "files": {
+    "contract.json": "97e90bab9332a561b10894924c6b6071c6d259524917d21e0fdf735a4cf58d22",
+    "capabilities.json": "278bd4e0b4bd5168b167dd2c7e8e68b41e56e716506362d12fbc2854beaed3e9",
+    "tests.json": "95ed4cd883181e7ddc2e66244db65f521cbcd7cd3217f742e4f15d7c0ae9ca4f",
+    "performance.json": "bc4aa71984e498c55e271631fedc7c232703cba8973d13448cd633f06861d294"
+  }
+}

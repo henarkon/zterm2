@@ -54,7 +54,27 @@ int main(int argc, const char *argv[]) {
     // Parse -suite argument before any UserDefaults access.
     // Uses -suite (not --suite=) so Cocoa's argument parser treats it as a
     // standard -key value pair and doesn't misparse subsequent arguments.
-    for (int i = 1; i + 1 < argc; i++) {
+    const BOOL zterm2 = [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"org.henarkon.zterm2"];
+    if (zterm2) {
+        NSString *baseSuite = @"org.henarkon.zterm2";
+        if (strcmp(getenv("ZTERM2_RENDER_METRICS") ?: "", "1") == 0) {
+            for (int index = 1; index + 1 < argc; index++) {
+                if (strcmp(argv[index], "-suite") != 0) { continue; }
+                NSString *candidate = [NSString stringWithUTF8String:argv[index + 1]];
+                NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyz0123456789.-"];
+                if ([candidate hasPrefix:@"org.henarkon.zterm2.bench."] && candidate.length <= 128 &&
+                    [candidate rangeOfCharacterFromSet:allowed.invertedSet].location == NSNotFound) {
+                    baseSuite = candidate;
+                }
+                break;
+            }
+        }
+        NSString *suiteName = [iTermTestHostIsolation suiteNameForBase:baseSuite];
+        [iTermUserDefaults setCustomSuiteName:suiteName];
+        NSString *prefix = [NSString stringWithFormat:@"%@.socket.", suiteName];
+        iTermFileDescriptorSetSocketNamePrefix(prefix.UTF8String);
+    }
+    for (int i = 1; !zterm2 && i + 1 < argc; i++) {
         if (strcmp(argv[i], "-suite") == 0) {
             // A unit-test host gets its own copy of the suite so parallel workers and later runs
             // don't see each other's settings.

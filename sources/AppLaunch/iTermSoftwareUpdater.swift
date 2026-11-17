@@ -72,6 +72,7 @@ class SoftwareUpdater: NSObject {
     // Starts scheduled checks. Call once, from applicationDidFinishLaunching:. Sparkle shows
     // its permission prompt on the second launch if the user has never answered it.
     @objc func start() {
+        guard Bundle.main.bundleIdentifier != "org.henarkon.zterm2" else { return }
         guard !started else {
             return
         }
@@ -111,6 +112,7 @@ class SoftwareUpdater: NSObject {
     // User-initiated check with Sparkle's progress UI. If called before start(),
     // the check runs as soon as the updater starts.
     @objc func checkForUpdates(_ sender: Any?) {
+        guard Bundle.main.bundleIdentifier != "org.henarkon.zterm2" else { return }
         guard started else {
             DLog("Deferring check for updates until the updater has started")
             checkRequestedBeforeStart = true

@@ -1,0 +1,197 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "performance",
+  "producer": "zterm2",
+  "release": "0.1.2-dev",
+  "data": {
+    "scope": "real-terminal",
+    "cpuConvention": "100%=one logical core",
+    "memoryConvention": "physical-footprint-bytes",
+    "comparisonKey": {
+      "platform": "macos",
+      "architecture": "arm64",
+      "hardware": "Apple M3 Pro; same host; macOS 26.7.2",
+      "fixtureSha256": "ba80b04943ca66a77ddaf5412219fa949f8dbe0f8e7ae41d352b4b461254453e",
+      "outputColourProfile": "ICC-SHA256:0ff6958f98684c61f6bbdce1368ddeaf3873baf84545baba482e920d92a914c0",
+      "cells": {
+        "width": 80,
+        "height": 25
+      },
+      "qualityTier": 0,
+      "requestedFps": 30,
+      "audio": false,
+      "seekSeconds": 0,
+      "warmupSeconds": 1,
+      "startupSettleSeconds": 7,
+      "width": 640,
+      "height": 360,
+      "sourceColourProfile": "sRGB",
+      "alphaPolicy": "opaque RGBA8",
+      "buildConfiguration": "Development",
+      "comparisonStatus": "Matched background synthetic scene; excludes physical presentation, legacy GIF/video decode and Cardo qualification.",
+      "visibilityMode": "background-invisible-active-renderer",
+      "targetViewportPixels": [
+        587,
+        429
+      ],
+      "backingScale": 1,
+      "gpuTiming": "enabled-both-cases"
+    },
+    "cases": [
+      {
+        "id": "candidate-cpu-a",
+        "seconds": 3.0769538750028005,
+        "memoryGuardBytes": 536870912,
+        "receivedFrames": 90,
+        "maximumPendingImages": 1,
+        "liveSharedObjectsAtFinish": 0,
+        "rendererCounters": {
+          "core_image_conversions": 0,
+          "cpu_uploads": 120,
+          "gpu_uploads": 0,
+          "lookup_builds": 0,
+          "lookup_bytes": 0,
+          "lookup_conversions": 0,
+          "output_profile_sha256": "0ff6958f98684c61f6bbdce1368ddeaf3873baf84545baba482e920d92a914c0",
+          "pool_bytes": 0,
+          "pool_count": 0,
+          "scale": 1,
+          "viewport_height": 429,
+          "viewport_width": 587
+        },
+        "processes": [
+          {
+            "role": "terminal",
+            "release": "0.1.2-dev",
+            "cpuPercent": 38.433625095065494,
+            "memoryPeakBytes": 216302744
+          },
+          {
+            "role": "producer",
+            "release": "0.1.2-dev",
+            "cpuPercent": 2.299553753735386,
+            "memoryPeakBytes": 17121712
+          }
+        ]
+      },
+      {
+        "id": "candidate-gpu-a",
+        "seconds": 3.115439500004868,
+        "memoryGuardBytes": 536870912,
+        "receivedFrames": 90,
+        "maximumPendingImages": 1,
+        "liveSharedObjectsAtFinish": 0,
+        "rendererCounters": {
+          "core_image_conversions": 0,
+          "cpu_uploads": 0,
+          "gpu_uploads": 120,
+          "lookup_builds": 1,
+          "lookup_bytes": 2113536,
+          "lookup_conversions": 120,
+          "output_profile_sha256": "0ff6958f98684c61f6bbdce1368ddeaf3873baf84545baba482e920d92a914c0",
+          "pool_bytes": 3833856,
+          "pool_count": 2,
+          "scale": 1,
+          "viewport_height": 429,
+          "viewport_width": 587
+        },
+        "processes": [
+          {
+            "role": "terminal",
+            "release": "0.1.2-dev",
+            "cpuPercent": 35.50832876062177,
+            "memoryPeakBytes": 227001496
+          },
+          {
+            "role": "producer",
+            "release": "0.1.2-dev",
+            "cpuPercent": 2.4399914789940405,
+            "memoryPeakBytes": 17138096
+          }
+        ]
+      },
+      {
+        "id": "candidate-gpu-b",
+        "seconds": 3.024756915998296,
+        "memoryGuardBytes": 536870912,
+        "receivedFrames": 90,
+        "maximumPendingImages": 1,
+        "liveSharedObjectsAtFinish": 0,
+        "rendererCounters": {
+          "core_image_conversions": 0,
+          "cpu_uploads": 0,
+          "gpu_uploads": 120,
+          "lookup_builds": 1,
+          "lookup_bytes": 2113536,
+          "lookup_conversions": 120,
+          "output_profile_sha256": "0ff6958f98684c61f6bbdce1368ddeaf3873baf84545baba482e920d92a914c0",
+          "pool_bytes": 3833856,
+          "pool_count": 2,
+          "scale": 1,
+          "viewport_height": 429,
+          "viewport_width": 587
+        },
+        "processes": [
+          {
+            "role": "terminal",
+            "release": "0.1.2-dev",
+            "cpuPercent": 35.85933476493436,
+            "memoryPeakBytes": 226313368
+          },
+          {
+            "role": "producer",
+            "release": "0.1.2-dev",
+            "cpuPercent": 2.4295946872503893,
+            "memoryPeakBytes": 17072560
+          }
+        ]
+      },
+      {
+        "id": "candidate-cpu-b",
+        "seconds": 3.021385083993664,
+        "memoryGuardBytes": 536870912,
+        "receivedFrames": 90,
+        "maximumPendingImages": 1,
+        "liveSharedObjectsAtFinish": 0,
+        "rendererCounters": {
+          "core_image_conversions": 0,
+          "cpu_uploads": 120,
+          "gpu_uploads": 0,
+          "lookup_builds": 0,
+          "lookup_bytes": 0,
+          "lookup_conversions": 0,
+          "output_profile_sha256": "0ff6958f98684c61f6bbdce1368ddeaf3873baf84545baba482e920d92a914c0",
+          "pool_bytes": 0,
+          "pool_count": 0,
+          "scale": 1,
+          "viewport_height": 429,
+          "viewport_width": 587
+        },
+        "processes": [
+          {
+            "role": "terminal",
+            "release": "0.1.2-dev",
+            "cpuPercent": 38.9124085692282,
+            "memoryPeakBytes": 215860376
+          },
+          {
+            "role": "producer",
+            "release": "0.1.2-dev",
+            "cpuPercent": 2.5414309838708293,
+            "memoryPeakBytes": 18022832
+          }
+        ]
+      }
+    ],
+    "limits": [
+      "Short 640x360 opaque synthetic Kitty workload at30fps; not GIF/video decode, Cardo or Yavin qualification.",
+      "Only two repetitions per path; no endurance or statistical significance claim.",
+      "Background rendering is active but physical screen presentation and compositor cost are not qualified.",
+      "Background target is fixed named Display P3; visible target was actual screen ICC. Never compare their absolute resource values directly.",
+      "Device GPU percentages include other applications and WindowServer; command-buffer envelopes are not hardware occupancy.",
+      "GPU path remains off by default; production qualification remains open.",
+      "Earlier v0.1.1 performance figures are superseded: helper crash reports could open a spurious UI. Historical artifacts remain immutable."
+    ]
+  }
+}

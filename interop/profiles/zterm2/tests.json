@@ -1,0 +1,58 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "tests",
+  "producer": "zterm2",
+  "release": "0.1.2-dev",
+  "data": {
+    "cases": [
+      {
+        "id": "colour-pool-lifecycle",
+        "scope": "isolated-renderer",
+        "procedure": "Run shared production pipeline under independent512MiB/20s observer.",
+        "assertions": [
+          "36 source/target sRGB,P3,actual-display cases; opaque,straight and premultiplied alpha",
+          "GPU maximum byte error1/255",
+          "Pool count/bytes, changing frames, resize, completion retention and drain",
+          "589824 dense colour samples; same-command-buffer GPU consumer; max1/255"
+        ],
+        "evidence": "dist/v0.1.2/isolated/test.json"
+      },
+      {
+        "id": "native-selection-copy-crop",
+        "scope": "native-XCTest",
+        "procedure": "Run selected ModernTests classes with test-host preference isolation and private named pasteboards.",
+        "assertions": [
+          "33 selected tests pass",
+          "Kitty crop coordinate regressions",
+          "Copy/selection logic and keychain namespace isolation"
+        ],
+        "evidence": "dist/v0.1.2/native-tests.json"
+      },
+      {
+        "id": "real-terminal-shm",
+        "scope": "real-terminal",
+        "procedure": "Four fresh-suite background CPU/GPU/GPU/CPU runs; fixed Display P3 and identical viewport;512MiB/20s guards.",
+        "assertions": [
+          "120 received frames/run;90 measured",
+          "640x360 RGBA opaque at30fps;80x25cells; matching pixel and output ICC SHA",
+          "One pending shared image and zero remaining objects",
+          "GPU uploads confirmed;1\u20132 output textures; zero observed CPU fallback in GPU cases",
+          "No visible windows or activation; at least60 completed GPU command buffers per measured window"
+        ],
+        "evidence": "dist/v0.1.2/measurements/background/"
+      },
+      {
+        "id": "observer-and-contract",
+        "scope": "offline-and-local-IPC",
+        "procedure": "Run26 Python tests including17 shared exchange tests and a separate POSIX-shm receiver.",
+        "assertions": [
+          "Automatic time/memory stop",
+          "Owner-only0600 shared-memory permissions and payload integrity",
+          "Tamper/version/symlink/receipt guards and honest comparison scopes"
+        ],
+        "evidence": "dist/v0.1.2/python-tests.json"
+      }
+    ]
+  }
+}

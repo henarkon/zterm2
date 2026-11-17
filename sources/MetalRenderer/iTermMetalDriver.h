@@ -233,6 +233,7 @@ panelReservationPoints:(CGFloat)panelReservationPoints;
 // The arg to completion is YES on success and NO if the draw was aborted for lack of resources.
 - (void)drawAsynchronouslyInView:(iTermMetalView *)view completion:(void (^)(BOOL))completion;
 - (void)expireNonASCIIGlyphs;
+- (void)discardKittyImageTextures;
 
 // Draw a frame and return the rendered texture. Uses the debug/offscreen rendering path
 // so the destination texture is CPU-readable. Blocks until the GPU finishes.

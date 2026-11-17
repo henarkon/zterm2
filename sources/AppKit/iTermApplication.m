@@ -118,6 +118,19 @@ static void iTermInstallCrashOnExceptionHook(void) {
     sOriginalCrashOnException = (void (*)(id, SEL, NSException *))method_setImplementation(method, (IMP)iTermCrashOnException);
 }
 
+BOOL iTermZtermBackgroundTestMode(void) {
+    static BOOL enabled;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        const char *background = getenv("ZTERM2_BACKGROUND_TESTS");
+        const char *metrics = getenv("ZTERM2_RENDER_METRICS");
+        enabled = [[NSBundle mainBundle].bundleIdentifier isEqualToString:@"org.henarkon.zterm2"] &&
+            background && strcmp(background, "1") == 0 && metrics && strcmp(metrics, "1") == 0;
+        if (enabled) { fprintf(stderr, "ZTERM2_BACKGROUND_ENABLED\n"); }
+    });
+    return enabled;
+}
+
 @interface iTermApplication()
 @property(nonatomic, strong, readwrite) NSWindow *it_windowBecomingKey;
 @end
@@ -1023,16 +1036,19 @@ static id sEmbeddedApplicationContext;
 }
 
 - (void)activateIgnoringOtherApps:(BOOL)flag {
+    if (iTermZtermBackgroundTestMode()) { return; }
     RLog(@"activateIgnoringOtherApps flag=%@", @(flag));
     [super activateIgnoringOtherApps:flag];
 }
 
 - (void)activate {
+    if (iTermZtermBackgroundTestMode()) { return; }
     RLog(@"activate");
     [super activate];
 }
 
 - (void)activateAppWithCompletion:(void (^)(void))completion {
+    if (iTermZtermBackgroundTestMode()) { completion(); return; }
     RLog(@"Activate with completion...");
     if ([self isActive]) {
         RLog(@"Application already active. Run completion block synchronously");
@@ -1088,6 +1104,7 @@ static id sEmbeddedApplicationContext;
 }
 
 - (void)activateWithRetry:(void (^)(void))finish {
+    if (iTermZtermBackgroundTestMode()) { finish(); return; }
     if (_activated) {
         RLog(@"Already activated");
         return;

@@ -1,3 +1,5 @@
+#import "iTermApplication.h"
+
 #ifndef THE_CLASS
 #define THE_CLASS ThisIsJustHereToMakeXCodeHappy
 @interface THE_CLASS : NSWindow
@@ -381,6 +383,7 @@ ITERM_WEAKLY_REFERENCEABLE
             DLog(@"delegate %@ does not respond", [self delegate]);
         }
     }
+    if (iTermZtermBackgroundTestMode()) { return; }
     DLog(@"%@ - calling makeKeyAndOrderFont, which triggers a window resize", NSStringFromClass([self class]));
     DLog(@"The current window frame is %fx%f", [self frame].size.width, [self frame].size.height);
     DLog(@"Invalidate cached occlusion: %@ %p", NSStringFromSelector(_cmd), self);
@@ -392,20 +395,24 @@ ITERM_WEAKLY_REFERENCEABLE
 }
 
 - (BOOL)canBecomeKeyWindow {
+    if (iTermZtermBackgroundTestMode()) { return NO; }
     return YES;
 }
 
 - (BOOL)canBecomeMainWindow {
+    if (iTermZtermBackgroundTestMode()) { return NO; }
     return YES;
 }
 
 - (void)orderWindow:(NSWindowOrderingMode)place relativeTo:(NSInteger)otherWin {
+    if (iTermZtermBackgroundTestMode()) { return; }
     DLog(@"Invalidate cached occlusion: %@ %p", NSStringFromSelector(_cmd), self);
     [[iTermWindowOcclusionChangeMonitor sharedInstance] invalidateCachedOcclusion];
     [super orderWindow:place relativeTo:otherWin];
 }
 
 - (void)orderFrontRegardless {
+    if (iTermZtermBackgroundTestMode()) { return; }
     DLog(@"Invalidate cached occlusion: %@ %p", NSStringFromSelector(_cmd), self);
     DLog(@"%@\n%@", NSStringFromSelector(_cmd), [NSThread callStackSymbols]);
     [[iTermWindowOcclusionChangeMonitor sharedInstance] invalidateCachedOcclusion];
@@ -413,6 +420,7 @@ ITERM_WEAKLY_REFERENCEABLE
 }
 
 - (void)orderFront:(nullable id)sender {
+    if (iTermZtermBackgroundTestMode()) { return; }
     DLog(@"Invalidate cached occlusion: %@ %p", NSStringFromSelector(_cmd), self);
     DLog(@"%@\n%@", NSStringFromSelector(_cmd), [NSThread callStackSymbols]);
     [[iTermWindowOcclusionChangeMonitor sharedInstance] invalidateCachedOcclusion];
@@ -420,6 +428,7 @@ ITERM_WEAKLY_REFERENCEABLE
 }
 
 - (void)orderBack:(nullable id)sender {
+    if (iTermZtermBackgroundTestMode()) { return; }
     DLog(@"Invalidate cached occlusion: %@ %p", NSStringFromSelector(_cmd), self);
     DLog(@"%@\n%@", NSStringFromSelector(_cmd), [NSThread callStackSymbols]);
     [[iTermWindowOcclusionChangeMonitor sharedInstance] invalidateCachedOcclusion];

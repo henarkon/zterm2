@@ -1,0 +1,15 @@
+zterm2 0.1.2 - Experimental local candidate
+
+New Features:
+- zterm2 has its own application identity,
+  settings and credentials. It coexists with
+  iTerm2 without replacing it.
+
+Improvements:
+- Experimental Kitty image rendering reduces
+  CPU use and memory in the qualified scene.
+  It remains disabled by default.
+
+Bug Fixes:
+- The crash reporter no longer mistakes helper
+  crash reports for application crashes.

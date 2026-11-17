@@ -15,6 +15,13 @@ import Security
 @testable import iTerm2SharedARC
 
 final class UpgradeSafeKeychainTests: XCTestCase {
+    func testZtermServiceNamespaceIsSeparateAndIdempotent() {
+        let service = "example-service"
+        let isolated = iTermUpgradeSafeKeychain.isolatedService(service, bundleIdentifier: "org.henarkon.zterm2")
+        XCTAssertEqual(isolated, "org.henarkon.zterm2:example-service")
+        XCTAssertEqual(iTermUpgradeSafeKeychain.isolatedService(isolated, bundleIdentifier: "org.henarkon.zterm2"), isolated)
+        XCTAssertEqual(iTermUpgradeSafeKeychain.isolatedService(service, bundleIdentifier: "com.googlecode.iterm2"), service)
+    }
     // MARK: - planAfterDataProtectionRead
 
     func testDataProtectionSuccessIsReturnedVerbatim() {

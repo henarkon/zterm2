@@ -497,7 +497,13 @@ NSString *const SessionViewWasSelectedForInspectionNotification = @"SessionViewW
     return _browserViewController != nil;
 }
 
+- (void)viewDidHide {
+    [super viewDidHide];
+    [_driver discardKittyImageTextures];
+}
+
 - (void)setTerminalViewsHidden:(BOOL)hidden {
+    if (hidden) { [_driver discardKittyImageTextures]; }
     _scrollview.hidden = hidden;
     _scrollview.documentView.hidden = YES;
     if (_metalView) {

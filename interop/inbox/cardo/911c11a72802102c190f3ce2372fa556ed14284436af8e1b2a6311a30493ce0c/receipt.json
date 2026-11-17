@@ -1,0 +1,8 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "receiver": "zterm2",
+  "producer": "cardo",
+  "bundleSha256": "911c11a72802102c190f3ce2372fa556ed14284436af8e1b2a6311a30493ce0c",
+  "decision": "received-not-qualified"
+}
