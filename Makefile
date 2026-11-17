@@ -1,3 +1,9 @@
+# zterm2 is delivered separately. Refuse legacy targets before any prerequisites
+# can back up, replace or launch the user's installed iTerm2.
+ifneq ($(filter install backup-old-iterm restart,$(MAKECMDGOALS)),)
+  $(error zterm2: legacy iTerm2 deployment is disabled; use tools/zterm2/build_candidate.py)
+endif
+
 ORIG_PATH := $(PATH)
 PATH := /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 ITERM_PID=$(shell pgrep "iTerm2")

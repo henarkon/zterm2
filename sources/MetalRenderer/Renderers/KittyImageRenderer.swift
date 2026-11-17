@@ -33,7 +33,10 @@ class KittyImageRun: NSObject {
 @objc(iTermKittyImageRendererTransientState)
 class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
     fileprivate var draws = [iTermKittyImageDraw]()
-    fileprivate var textures = ReferenceContainer<[UUID: MTLTexture]>([:])
+    fileprivate var textures = ReferenceContainer<[UUID: ZTermTextureLease]>([:])
+    fileprivate var frameLeases = ZTermTextureFrame()
+    fileprivate var texturePipeline: ZTermKittyTexturePipeline?
+    fileprivate var metrics: ZTermRenderMetrics?
     // The renderer draws this transient state once per z-range (three times per frame), all sharing
     // the same draws. Prune the shared texture cache only on the first pass of the frame.
     fileprivate var didPruneTextures = false
@@ -68,15 +71,37 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
         var quad: MTLBuffer
     }
 
+    private struct Geometry {
+        var draw: iTermKittyImageDraw
+        var frame: NSRect
+        var textureFrame: NSRect
+        var source: NSRect
+        var destination: NSRect
+    }
+
+    fileprivate var visibleImageIDs: Set<UUID> {
+        var result = Set<UUID>()
+        enumerateGeometries(zRange: Int(Int32.min)..<(Int(Int32.max) + 1)) { geometry in
+            result.insert(geometry.draw.imageUniqueID)
+        }
+        return result
+    }
+
     fileprivate func enumerateOperations(zRange: Range<Int>, closure: (Operation) -> ()) {
+        enumerateGeometries(zRange: zRange) { geometry in
+            guard let texture = texture(for: geometry.draw) else { return }
+            let quad = cellRenderer.newQuad(withFrame: geometry.frame,
+                                             textureFrame: geometry.textureFrame,
+                                             poolContext: poolContext)
+            closure(Operation(texture: texture, source: geometry.source,
+                              destination: geometry.destination, quad: quad))
+        }
+    }
+
+    private func enumerateGeometries(zRange: Range<Int>, closure: (Geometry) -> ()) {
         DLog("enumerateOperations: zRange=\(zRange) draws.count=\(draws.count) runs.count=\(runs.count)")
         let screenOrigin = scaledVisibleRect.origin.addingY(-configuration.extraMargins.top)
         for (i, draw) in draws.enumerated() {
-            let texture = texture(for: draw)
-            guard let texture else {
-                DLog("enumerateOperations: draw[\(i)] imageID=\(draw.imageID) - no texture, skipping")
-                continue
-            }
             guard zRange.contains(Int(clamping: draw.zIndex)) else {
                 DLog("enumerateOperations: draw[\(i)] imageID=\(draw.imageID) - zIndex \(draw.zIndex) not in range, skipping")
                 continue
@@ -95,14 +120,8 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
             let destinationFrame = shiftedDestinationFrame
                 .translatedToOrigin(screenOrigin)
                 .flipped(in: CGFloat(configuration.viewportSize.y))
-            let quad = cellRenderer.newQuad(
-                withFrame: destinationFrame,
-                textureFrame: textureFrame(draw),
-                poolContext: poolContext)
-            closure(Operation(texture: texture,
-                              source: draw.sourceFrame,
-                              destination: draw.destinationFrame,
-                              quad: quad))
+            closure(Geometry(draw: draw, frame: destinationFrame, textureFrame: textureFrame(draw),
+                             source: draw.sourceFrame, destination: draw.destinationFrame))
         }
 
         // Now do unicode placeholders.
@@ -113,11 +132,7 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
                 DLog("enumerateOperations: run[\(i)] - NO DRAW FOUND for imageID=\(run.draw.imageID) placementID=\(run.draw.placementID)")
                 continue
             }
-            let texture = texture(for: draw)
-            guard let texture else {
-                DLog("enumerateOperations: run[\(i)] imageID=\(draw.imageID) - no texture, skipping")
-                continue
-            }
+            guard zRange.contains(Int(clamping: draw.zIndex)) else { continue }
             DLog("enumerateOperations: run[\(i)] imageID=\(draw.imageID) (0x\(String(draw.imageID, radix: 16))) sourceCoord=\(VT100GridCoordDescription(run.sourceCoord)) destCoord=\(VT100GridCoordDescription(run.destCoord)) - rendering")
             let instructions =
             iTermKittyPlaceholderDrawInstructionsCreate(
@@ -142,14 +157,12 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
                               height: instructions.destRect.height)
             dest *= configuration.scale
             dest.shiftY(by: margins.bottom)
-            let quad = cellRenderer.newQuad(
-                withFrame: dest.flipped(in: CGFloat(configuration.viewportSize.y)),
-                textureFrame: quadTextureFrame.inverted,
-                poolContext: poolContext)
-            closure(Operation(texture: texture,
-                              source: instructions.sourceRect,
-                              destination: instructions.destRect,
-                              quad: quad))
+            guard dest.intersects(NSRect(x: 0, y: 0,
+                                         width: CGFloat(configuration.viewportSize.x),
+                                         height: CGFloat(configuration.viewportSize.y))) else { continue }
+            closure(Geometry(draw: draw, frame: dest.flipped(in: CGFloat(configuration.viewportSize.y)),
+                             textureFrame: quadTextureFrame.inverted,
+                             source: instructions.sourceRect, destination: instructions.destRect))
         }
     }
 
@@ -169,24 +182,54 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
         return (sourceFrame.flipped(in: imageSize.height) / imageSize).inverted
     }
 
-    private func texture(for draw: iTermKittyImageDraw) -> MTLTexture? {
-        if let texture = textures.value[draw.imageUniqueID] {
-            return texture
+    fileprivate func prepareTextures(commandBuffer: MTLCommandBuffer) {
+        enumerateGeometries(zRange: Int(Int32.min)..<(Int(Int32.max) + 1)) { geometry in
+            _ = texture(for: geometry.draw, commandBuffer: commandBuffer)
         }
-        guard let texture = createTexture(draw) else {
-            return nil
-        }
-        textures.value[draw.imageUniqueID] = texture
-        return texture
     }
 
-    private func createTexture(_ draw: iTermKittyImageDraw) -> MTLTexture? {
+    private func texture(for draw: iTermKittyImageDraw, commandBuffer: MTLCommandBuffer? = nil) -> MTLTexture? {
+        if let lease = textures.value[draw.imageUniqueID] {
+            frameLeases.retain(lease)
+            return lease.texture
+        }
+        guard let lease = createTexture(draw, commandBuffer: commandBuffer) else {
+            return nil
+        }
+        textures.value[draw.imageUniqueID] = lease
+        frameLeases.retain(lease)
+        return lease.texture
+    }
+
+    private func createTexture(_ draw: iTermKittyImageDraw, commandBuffer: MTLCommandBuffer?) -> ZTermTextureLease? {
         guard let image = draw.image.images.firstObject as? NSImage else {
             return nil
         }
-        return cellRenderer.texture(fromImage: iTermImageWrapper(image: image),
-                                    context: poolContext,
-                                    colorSpace: configuration.colorSpace)
+        if let texturePipeline, let commandBuffer,
+           let cgImage = draw.image.ztermSourceCGImage ?? image.bestRepresentation(
+               for: NSRect(origin: .zero, size: image.size), context: nil, hints: nil)?
+               .cgImage(forProposedRect: nil, context: nil, hints: nil),
+           let colorSpace = configuration.colorSpace.cgColorSpace,
+           let lease = texturePipeline.encode(cgImage, colorSpace: colorSpace,
+                                               generation: draw.imageUniqueID, commandBuffer: commandBuffer) {
+            if metrics?.enabled == true {
+                metrics?.record(gpu: true, pool: texturePipeline.pool, profile: configuration.colorSpace.iccProfileData,
+                                lookup: texturePipeline.lookupConversions, coreImage: texturePipeline.coreImageConversions,
+                                lookupBuilds: texturePipeline.lookupBuilds, lookupBytes: texturePipeline.lookupBytes,
+                                viewportWidth: Int(configuration.viewportSize.x), viewportHeight: Int(configuration.viewportSize.y),
+                                scale: Double(configuration.scale))
+            }
+            return lease
+        }
+        guard let texture = cellRenderer.texture(fromImage: iTermImageWrapper(image: image),
+                                                 context: poolContext,
+                                                 colorSpace: configuration.colorSpace) else { return nil }
+        if metrics?.enabled == true {
+            metrics?.record(gpu: false, pool: texturePipeline?.pool, profile: configuration.colorSpace.iccProfileData,
+                            viewportWidth: Int(configuration.viewportSize.x), viewportHeight: Int(configuration.viewportSize.y),
+                            scale: Double(configuration.scale))
+        }
+        return ZTermTextureLease(texture: texture, generation: draw.imageUniqueID)
     }
 }
 
@@ -194,9 +237,18 @@ class KittyImageRendererTransientState: iTermMetalCellRendererTransientState {
 class KittyImageRenderer: NSObject, iTermMetalCellRendererProtocol {
     @objc var rendererDisabled = false
     private let cellRenderer: iTermMetalCellRenderer
-    private var textures = ReferenceContainer([UUID: MTLTexture]())
+    private var textures = ReferenceContainer([UUID: ZTermTextureLease]())
+    private var texturePipeline: ZTermKittyTexturePipeline?
+    private var colorProfile: NSColorSpace?
+    private let metrics = ZTermRenderMetrics()
     @objc var minZ: Int32 = 0
     @objc var maxZ: Int32 = 0
+    @objc func discardTextures() {
+        textures.value.removeAll()
+        texturePipeline?.drain()
+        colorProfile = nil
+    }
+
     @objc(initWithDevice:)
     init?(device: MTLDevice) {
         let maybeCellRenderer = iTermMetalCellRenderer(device: device,
@@ -209,6 +261,9 @@ class KittyImageRenderer: NSObject, iTermMetalCellRendererProtocol {
             return nil
         }
         self.cellRenderer = cellRenderer
+        if ProcessInfo.processInfo.environment["ZTERM2_KITTY_GPU"] == "1" {
+            texturePipeline = ZTermKittyTexturePipeline(device: device)
+        }
     }
 
     func createTransientStateStat() -> iTermMetalFrameDataStat {
@@ -219,25 +274,10 @@ class KittyImageRenderer: NSObject, iTermMetalCellRendererProtocol {
         guard let tState = transientState as? KittyImageRendererTransientState else {
             return
         }
-        // Bound the texture cache to the working set. Every transmission mints a fresh Image with a
-        // fresh uniqueId, and re-pointing live placements on retransmission means an animation that
-        // repeatedly retransmits under one image id would otherwise add one permanent MTLTexture per
-        // frame. Drop cached textures whose image is not drawn this frame; live ones are kept and
-        // reused, so a stable scene never re-creates textures. Do this once per frame (not per
-        // z-range pass), and only rebuild the dictionary when something is actually dead so the
-        // steady state is free.
-        if !tState.didPruneTextures {
-            tState.didPruneTextures = true
-            let liveUUIDs = Set(tState.draws.map { $0.imageUniqueID })
-            if textures.value.contains(where: { !liveUUIDs.contains($0.key) }) {
-                textures.value = textures.value.filter { liveUUIDs.contains($0.key) }
-            }
-        }
+        guard frameData.renderEncoder != nil else { return }
         let zRange = Range(Int(minZ)...Int(maxZ))
         tState.enumerateOperations(zRange: zRange) { op in
-            guard let renderEncoder = frameData.renderEncoder else {
-                return
-            }
+            guard let renderEncoder = frameData.renderEncoder else { return }
             cellRenderer.draw(with: transientState,
                               renderEncoder: renderEncoder,
                               numberOfVertices: 6,
@@ -248,15 +288,47 @@ class KittyImageRenderer: NSObject, iTermMetalCellRendererProtocol {
         }
     }
 
+    @objc(prepareTexturesForFrameData:)
+    func prepareTextures(for frameData: iTermMetalFrameData) {
+        guard let tState = frameData.transientState(forRenderer: self) as? KittyImageRendererTransientState,
+              let commandBuffer = frameData.commandBuffer else { return }
+        // Bound the texture cache to the working set. Every transmission mints a fresh Image with a
+        // fresh uniqueId, and re-pointing live placements on retransmission means an animation that
+        // repeatedly retransmits under one image id would otherwise add one permanent MTLTexture per
+        // frame. Drop cached textures whose image is not drawn this frame; live ones are kept and
+        // reused, so a stable scene never re-creates textures. Do this once per frame (not per
+        // z-range pass), and only rebuild the dictionary when something is actually dead so the
+        // steady state is free.
+        if !tState.didPruneTextures {
+            tState.didPruneTextures = true
+            let liveUUIDs = tState.visibleImageIDs
+            if textures.value.contains(where: { !liveUUIDs.contains($0.key) }) {
+                textures.value = textures.value.filter { liveUUIDs.contains($0.key) }
+            }
+            if liveUUIDs.isEmpty { texturePipeline?.drain() }
+        }
+        tState.prepareTextures(commandBuffer: commandBuffer)
+    }
+
     func createTransientState(forCellConfiguration configuration: iTermCellRenderConfiguration, commandBuffer: any MTLCommandBuffer) -> iTermMetalRendererTransientState? {
         let transientState = cellRenderer.createTransientState(forCellConfiguration: configuration,
                                                                commandBuffer: commandBuffer) as! KittyImageRendererTransientState
         initializeTransientState(transientState)
+        let retainedLeases = transientState.frameLeases
+        commandBuffer.addCompletedHandler { _ in retainedLeases.complete() }
         return transientState
     }
 
     private func initializeTransientState(_ tState: KittyImageRendererTransientState) {
+        let profile = tState.configuration.colorSpace
+        if colorProfile?.isEqual(profile) != true {
+            textures.value.removeAll()
+            texturePipeline?.drain()
+            colorProfile = profile
+        }
         tState.cellRenderer = cellRenderer;
         tState.textures = textures;
+        tState.texturePipeline = texturePipeline
+        tState.metrics = metrics
     }
 }

@@ -51,6 +51,11 @@ import Foundation
 import CryptoKit
 
 enum iTermUpgradeSafeKeychain {
+    static func isolatedService(_ service: String, bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> String {
+        let prefix = "org.henarkon.zterm2:"
+        guard bundleIdentifier == "org.henarkon.zterm2", !service.hasPrefix(prefix) else { return service }
+        return prefix + service
+    }
     // MARK: - Public SecItem-shaped surface
 
     /// Data-protection-keychain analog of SecItemCopyMatching for a single generic
@@ -294,6 +299,9 @@ enum iTermUpgradeSafeKeychain {
         // (e.g. a shared group for an XPC helper) or the OS reorders them, pinning
         // groups.first could silently target the wrong group and make stored secrets read
         // as errSecItemNotFound. Fall back to the first entry only if none matches.
+        if Bundle.main.bundleIdentifier == "org.henarkon.zterm2" {
+            return groups.first(where: { $0.hasSuffix(".org.henarkon.zterm2") })
+        }
         return groups.first(where: { $0.hasSuffix(".com.googlecode.iterm2") }) ?? groups.first
     }()
 
@@ -301,7 +309,7 @@ enum iTermUpgradeSafeKeychain {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecUseDataProtectionKeychain as String: true,
-            kSecAttrService as String: service,
+            kSecAttrService as String: isolatedService(service),
             kSecAttrAccount as String: account
         ]
         // Pin the access group EXPLICITLY rather than relying on the implicit default,
@@ -381,7 +389,7 @@ enum iTermUpgradeSafeKeychain {
         return [
             kSecClass as String: kSecClassGenericPassword,
             kSecUseDataProtectionKeychain as String: false,
-            kSecAttrService as String: service,
+            kSecAttrService as String: isolatedService(service),
             kSecAttrAccount as String: account
         ]
     }

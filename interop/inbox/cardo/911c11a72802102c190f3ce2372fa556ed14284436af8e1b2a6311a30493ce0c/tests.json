@@ -1,0 +1,142 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "tests",
+  "producer": "cardo",
+  "release": "0.28.73",
+  "data": {
+    "cases": [
+      {
+        "id": "media-lifetime-v1",
+        "scope": "protocol-model",
+        "procedure": "Run reviewed Cardo qualification media-lifetime.py with --seconds16 --transport file in an owned PTY and independent memory guard; repeat compressed path separately",
+        "assertions": [
+          "No image deletion before replacement completes",
+          "Bounded live images/leases",
+          "Zero leases and images after shutdown",
+          "No animated SIXEL"
+        ],
+        "evidence": "cardo:test/qualification/media-lifetime.py; cardo:docs/video-cadence-results.json"
+      },
+      {
+        "id": "selection-playback-state-v1",
+        "scope": "native-app",
+        "procedure": "Run inline-video, inline-image, media-live, watermarks, diagnostics and retina-geometry qualification scenes against the exact candidate",
+        "assertions": [
+          "Copy/selection preserved across playback and scrub",
+          "Pause hidden media",
+          "Restore time/zoom/audio/playing intent after session switch",
+          "Scroll/resize does not cover chrome",
+          "Drain then safe explicit resume"
+        ],
+        "evidence": "cardo:test/qualification/*.check.tsx; 17 scenes/326 assertions qualified in0.28.73"
+      },
+      {
+        "id": "receiver-colour-reuse-v1",
+        "scope": "terminal-receiver",
+        "procedure": "zterm2 owns isolated CPU/GPU comparisons using identical sRGB/DisplayP3/alpha fixtures, then a bounded native terminal integration run",
+        "assertions": [
+          "Colour and alpha within explicit measured tolerance",
+          "No GPU resource overwritten while in flight",
+          "Texture count/bytes bounded across resize and hidden media",
+          "Generation changes update pixels without stale cache",
+          "Terminal background/text/selection layers preserved"
+        ],
+        "evidence": "Acceptance criteria proposed for zterm2; no completed receiver qualification claimed"
+      },
+      {
+        "id": "remote-fallback-v1",
+        "scope": "transport",
+        "procedure": "Check standard iTerm2, local zterm2, SSH, Zellij and SSH+Zellij separately with actual end-to-end probes",
+        "assertions": [
+          "No local SHM under SSH/multiplexer assumptions",
+          "Unknown/planned extension disabled",
+          "Safe fallback remains usable",
+          "Copy support verified separately from image support"
+        ],
+        "evidence": "Acceptance matrix; not a claim that all combinations have passed"
+      }
+    ],
+    "colourVectors": [
+      {
+        "id": "srgb-straight-2x2",
+        "colourSpace": "sRGB",
+        "alpha": "straight",
+        "width": 2,
+        "height": 2,
+        "rgba": [
+          255,
+          0,
+          0,
+          255,
+          0,
+          255,
+          0,
+          128,
+          0,
+          0,
+          255,
+          0,
+          127,
+          127,
+          127,
+          255
+        ],
+        "sha256": "0ef3cf01dd8cf24d9c7666e63bf6c34901c9803837f20cfd3d835448d138c924"
+      },
+      {
+        "id": "p3-straight-2x2",
+        "colourSpace": "DisplayP3",
+        "alpha": "straight",
+        "width": 2,
+        "height": 2,
+        "rgba": [
+          255,
+          0,
+          0,
+          255,
+          0,
+          255,
+          0,
+          128,
+          0,
+          0,
+          255,
+          0,
+          127,
+          127,
+          127,
+          255
+        ],
+        "sha256": "0ef3cf01dd8cf24d9c7666e63bf6c34901c9803837f20cfd3d835448d138c924"
+      },
+      {
+        "id": "srgb-premultiplied-2x2",
+        "colourSpace": "sRGB",
+        "alpha": "premultiplied",
+        "width": 2,
+        "height": 2,
+        "rgba": [
+          255,
+          0,
+          0,
+          255,
+          0,
+          128,
+          0,
+          128,
+          0,
+          0,
+          0,
+          0,
+          127,
+          127,
+          127,
+          255
+        ],
+        "sha256": "bde11605784cee39e36a31a1093a831a105178e0c74e846422e19c3ae62d5e5b"
+      }
+    ],
+    "colourReference": "Compare CPU and GPU outputs under the same source/target colour profile and alpha policy; record tolerances and maximum error, including transparent pixels. These inputs are not an assertion of correct output colours."
+  }
+}

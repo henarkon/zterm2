@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/gnachman/iTerm2",
+  "stable": {"version": "3.7.7", "tag": "v3.7.7", "commit": "e0025340b49a2fc6415f490d77bbead5d3e0583e"},
+  "integration_base": "8bf82e4296b25a56c31a29784cd6ff547a98e819",
+  "integration_policy": "manual-qualification",
+  "automatic_installation": false,
+  "upstream_merge_requests": false
+}

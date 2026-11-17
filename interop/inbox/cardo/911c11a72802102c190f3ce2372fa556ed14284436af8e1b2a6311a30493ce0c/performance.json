@@ -1,0 +1,123 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "performance",
+  "producer": "cardo",
+  "release": "0.28.73",
+  "data": {
+    "scope": "real-terminal",
+    "cpuConvention": "100%=one logical core",
+    "memoryConvention": "physical-footprint-bytes",
+    "comparisonKey": {
+      "fixture": "Battle of Yavin H264 640x360 source30fps",
+      "fixtureSha256": null,
+      "hardware": null,
+      "outputColourProfile": null,
+      "cells": {
+        "width": 106,
+        "height": 24
+      },
+      "qualityTier": 0,
+      "requestedFps": 30,
+      "audio": false,
+      "seekSeconds": 90,
+      "warmupSeconds": 1,
+      "platform": "macos",
+      "comparisonStatus": "descriptive-only; historical SHA, hardware identity and output colour profile were not recorded"
+    },
+    "cases": [
+      {
+        "id": "before",
+        "seconds": 9.9094336249982,
+        "startSeconds": 91.130508,
+        "endSeconds": 101.039756,
+        "publishedFps": 22.100153075099666,
+        "memoryGuardBytes": 536870912,
+        "frameAgeMs": {
+          "minimum": 15.479,
+          "median": 37.373,
+          "p95": 86.071,
+          "maximum": 111.323
+        },
+        "processes": [
+          {
+            "role": "cardo",
+            "release": "0.28.72",
+            "cpuPercent": 14.715499191814455,
+            "memoryPeakBytes": 219415752
+          },
+          {
+            "role": "iterm",
+            "release": "3.7.7",
+            "cpuPercent": 44.929469922160244,
+            "memoryPeakBytes": 470386296
+          }
+        ]
+      },
+      {
+        "id": "after1",
+        "seconds": 9.904821832999005,
+        "startSeconds": 91.130004,
+        "endSeconds": 101.03485,
+        "publishedFps": 29.682512715221854,
+        "memoryGuardBytes": 536870912,
+        "frameAgeMs": {
+          "minimum": -3.274,
+          "median": 39.914500000000004,
+          "p95": 58.62,
+          "maximum": 61.261
+        },
+        "processes": [
+          {
+            "role": "cardo",
+            "release": "0.28.73",
+            "cpuPercent": 14.056099205758828,
+            "memoryPeakBytes": 179815456
+          },
+          {
+            "role": "iterm",
+            "release": "3.7.7",
+            "cpuPercent": 47.64938351819896,
+            "memoryPeakBytes": 472106592
+          }
+        ]
+      },
+      {
+        "id": "after2",
+        "seconds": 9.893493749994377,
+        "startSeconds": 91.131251,
+        "endSeconds": 101.024496,
+        "publishedFps": 30.120805403062935,
+        "memoryGuardBytes": 536870912,
+        "frameAgeMs": {
+          "minimum": -8.816,
+          "median": 20.111,
+          "p95": 37.318,
+          "maximum": 39.262
+        },
+        "processes": [
+          {
+            "role": "cardo",
+            "release": "0.28.73",
+            "cpuPercent": 14.372004995715573,
+            "memoryPeakBytes": 165282872
+          },
+          {
+            "role": "iterm",
+            "release": "3.7.7",
+            "cpuPercent": 47.93086491819631,
+            "memoryPeakBytes": 473482848
+          }
+        ]
+      }
+    ],
+    "limits": [
+      "Historical Cardo/iTerm2 reference, not a zterm2 measurement.",
+      "Native frame age excludes terminal reception, compositor and physical display.",
+      "iTerm2 process totals include all tabs; no exclusive GPU/WindowServer attribution.",
+      "No claim of reduced absolute iTerm2 CPU; throughput and CPU per published frame improved.",
+      "Cardo memory difference across reload is not proof of algorithmic memory improvement.",
+      "New cross-project matched comparisons require complete equal comparison keys and exact candidate identities."
+    ]
+  }
+}

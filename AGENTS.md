@@ -1,4 +1,16 @@
+# zterm2 Fork Rules
+
+This project uses coding-project-steward (CPS) exclusively. Its current landscape chain and the CPS owner guard govern changes; do not initialize a competing manager.
+
+Never open a pull request or merge request to the upstream iTerm2 team. Official upstream sources and stable releases are inputs for manual qualification only; never install a detected release automatically.
+
+Target macOS only. Cardo and Vigil have independent source trees and deliveries. Import reviewed declarative peer artifacts into this repository; do not mutate those projects.
+
+Use `tools/zterm2/build_candidate.py` for isolated builds. Do not use upstream installation/restart targets against the installed iTerm2 application. Keep `org.henarkon.zterm2` identity, preferences, credentials and updater separate. The experimental GPU path remains opt-in until real application measurements and qualification justify enabling it.
+
 # iTerm2 Agent Guide
+
+Automated zterm2 application tests must use the invisible-window qualification mode (`--background`, the default in the zterm2 tools). Never launch a visible test or a legacy baseline binary without explicit user authorization. Background qualification must prove active Metal rendering; do not treat an idle hidden window as a performance result.
 
 > Essential guide for AI agents working on iTerm2.
 

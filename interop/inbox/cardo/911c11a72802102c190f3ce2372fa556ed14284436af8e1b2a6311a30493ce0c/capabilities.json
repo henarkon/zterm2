@@ -1,0 +1,19 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "capabilities",
+  "producer": "cardo",
+  "release": "0.28.73",
+  "data": {
+    "role": "client",
+    "features": [
+      {"id":"kitty-rgba","status":"conditional","condition":"End-to-end Kitty support and media protection ready; positive terminal capability probe required","evidence":"cardo:src/tui/media-safety.ts; cardo:assets/opentui/sixel-opaque-replace.patch"},
+      {"id":"kitty-combined-transmit-display","status":"conditional","condition":"Stable visible content-only replacement over a confirmed local shared-memory transport","evidence":"cardo:docs/video-cadence.md; native combined upload test and bounded wire test"},
+      {"id":"posix-shm","status":"conditional","condition":"Local macOS iTerm path without SSH/TMUX/Zellij; real shared namespace, positive probe and ACK lifecycle","evidence":"cardo:src/tui/media-terminal.ts; native leases <=8, total <=64MiB, timeout5s"},
+      {"id":"rgba-zlib","status":"conditional","condition":"End-to-end Kitty support; fallback when local shared-memory transport is not available","evidence":"cardo:src/tui/media-terminal.ts; native bounded compressed transport"},
+      {"id":"gpu-colour-conversion","status":"unsupported","condition":"Receiver-owned optimization; Cardo decoding/conversion on Metal does not establish terminal-side GPU conversion","evidence":"cardo:docs/video-cadence.md; terminal receiver bottleneck remains open"},
+      {"id":"bounded-texture-reuse","status":"unsupported","condition":"Receiver-owned optimization; requires zterm2 evidence before any compatibility claim","evidence":"cardo:docs/video-cadence.md; no terminal reuse claim made"},
+      {"id":"shared-iosurface","status":"planned","condition":"No extension implemented or negotiated; disabled","evidence":"Future architecture only; no support or performance evidence"}
+    ]
+  }
+}

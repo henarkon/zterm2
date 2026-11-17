@@ -1,0 +1,42 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "kind": "capabilities",
+  "producer": "zterm2",
+  "release": "0.1.2-dev",
+  "data": {
+    "role": "terminal",
+    "features": [
+      {
+        "id": "kitty-rgba",
+        "status": "conditional",
+        "condition": "Local source and terminal namespace must be compatible; successful runtime ACK required.",
+        "evidence": "Four guarded terminal runs:120 received frames/run,90 measured; one pending shared object; zero remaining."
+      },
+      {
+        "id": "posix-shm",
+        "status": "conditional",
+        "condition": "Local source and terminal namespace must be compatible; successful runtime ACK required.",
+        "evidence": "Four guarded terminal runs:120 received frames/run,90 measured; one pending shared object; zero remaining."
+      },
+      {
+        "id": "gpu-colour-conversion",
+        "status": "conditional",
+        "condition": "Experimental sRGB LUT render-pass path, opt-in and off by default; output profiles require qualification.",
+        "evidence": "36 colour/alpha cases and589824 dense samples, max1/255; four matched background terminal runs; no claim for GIF/video decode."
+      },
+      {
+        "id": "bounded-texture-reuse",
+        "status": "conditional",
+        "condition": "4 slots/64MiB including uploads, plus2MiB ICC LUT; opt-in; no peer GPU sharing.",
+        "evidence": "In-flight retention, drain, resize and same-command-buffer consumer pass."
+      },
+      {
+        "id": "shared-iosurface",
+        "status": "unsupported",
+        "condition": "Future phase; not implemented.",
+        "evidence": "Current transport is RGBA in POSIX shared memory."
+      }
+    ]
+  }
+}

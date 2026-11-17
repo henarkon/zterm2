@@ -283,6 +283,14 @@ typedef struct {
                                                  selector:@selector(applicationDidBecomeActive:)
                                                      name:NSApplicationDidBecomeActiveNotification
                                                    object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(discardKittyImageTexturesForNotification:)
+                                                     name:NSApplicationDidHideNotification
+                                                   object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(discardKittyImageTexturesForNotification:)
+                                                     name:NSWindowDidMiniaturizeNotification
+                                                   object:nil];
     }
 
     return self;
@@ -303,6 +311,20 @@ typedef struct {
 - (iTermMetalDriverMainThreadState *)mainThreadState {
     assert([NSThread isMainThread]);
     return &_mainThreadState;
+}
+
+- (void)discardKittyImageTexturesForNotification:(NSNotification *)notification {
+    [self discardKittyImageTextures];
+}
+
+- (void)discardKittyImageTextures {
+#if ENABLE_PRIVATE_QUEUE
+    dispatch_async(_queue, ^{
+        [self->_kittyImageRenderer discardTextures];
+    });
+#else
+    [_kittyImageRenderer discardTextures];
+#endif
 }
 
 - (void)applicationDidBecomeActive:(NSNotification *)notification {
@@ -508,6 +530,10 @@ panelReservationPoints:(CGFloat)panelReservationPoints {
 }
 
 - (BOOL)reallyDrawInMTKView:(nonnull iTermMetalView *)view startToStartTime:(NSTimeInterval)startToStartTime {
+    if ([view isHiddenOrHasHiddenAncestor] || view.window.miniaturized || NSApp.hidden) {
+        [self discardKittyImageTextures];
+        return NO;
+    }
     DLog(@"Draw in %@ for %@", view, self.dataSource);
     // Read the advanced setting once per frame to ensure consistent behavior throughout the frame.
     const BOOL useSynchronizedDrawing = [iTermAdvancedSettingsModel metalSynchronizedDrawing];
@@ -1957,6 +1983,9 @@ panelReservationPoints:(CGFloat)panelReservationPoints {
             [tState addRuns:rowData.kittyImageRuns];
         }
     }];
+    // No render encoder is active here. Conversion and sampling share the frame's
+    // command buffer, so Metal orders them without blocking the CPU.
+    [_kittyImageRenderer prepareTexturesForFrameData:frameData];
 }
 
 - (void)populateRectangleRendererTransientStateWithFrameData:(iTermMetalFrameData *)frameData {
@@ -2572,6 +2601,16 @@ extraIdentifyingInfoForIcon:button.extraIdentifyingInfoForIcon];
         } copy];
 
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull buffer) {
+            static BOOL ztermTimingEnabled;
+            static dispatch_once_t ztermTimingOnce;
+            dispatch_once(&ztermTimingOnce, ^{
+                const char *value = getenv("ZTERM2_GPU_TIMING");
+                ztermTimingEnabled = value && strcmp(value, "1") == 0;
+            });
+            if (ztermTimingEnabled) {
+                fprintf(stderr, "ZTERM2_GPU_TIME {\"start\":%.9f,\"end\":%.9f,\"status\":%ld}\n",
+                        buffer.GPUStartTime, buffer.GPUEndTime, (long)buffer.status);
+            }
 #if ENABLE_PRIVATE_QUEUE
             [frameData dispatchToQueue:self->_queue forCompletion:completedBlock];
 #else

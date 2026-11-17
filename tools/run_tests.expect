@@ -85,7 +85,14 @@ proc kill_tree {pid} {
     catch {exec kill -9 $pid}
 }
 
-spawn xcodebuild test -project iTerm2.xcodeproj -scheme ModernTests {*}$only_testing_flags -parallel-testing-enabled $parallel {*}$signing_flags
+set derived_data_flags {}
+if {[info exists env(ZTERM2_DERIVED_DATA_PATH)]} {
+    set derived_data_flags [list -derivedDataPath $env(ZTERM2_DERIVED_DATA_PATH)]
+}
+if {[info exists env(ZTERM2_TEST_SANITIZER)] && $env(ZTERM2_TEST_SANITIZER) eq "none"} {
+    lappend derived_data_flags -enableAddressSanitizer NO
+}
+spawn xcodebuild test -project iTerm2.xcodeproj -scheme ModernTests {*}$only_testing_flags -parallel-testing-enabled $parallel {*}$signing_flags {*}$derived_data_flags
 set spawned_pid [exp_pid]
 
 proc cleanup_and_exit {code} {

@@ -1,0 +1,34 @@
+{
+  "protocol": "cardo-zterm2",
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "platformScope": ["macos"],
+  "owners": {"cardo": "agent, TUI, playback state, selections and copies", "zterm2": "terminal receiver, GPU resources, colour conversion and upstream tracking"},
+  "featureIds": ["kitty-rgba", "kitty-combined-transmit-display", "posix-shm", "rgba-zlib", "gpu-colour-conversion", "bounded-texture-reuse", "shared-iosurface"],
+  "negotiation": {
+    "rule": "A declared capability is not a runtime probe. Enable a feature only after both sides support it and the actual terminal path positively confirms it.",
+    "unknownOrPlanned": "disabled",
+    "localShm": "Only when producer and receiver are co-located, share a permitted namespace and the probe/ACK lifecycle succeeds; never infer this from TERM_PROGRAM alone.",
+    "sshOrMultiplexer": "No shared-memory assumption. Probe the complete path; compressed RGBA when supported, otherwise static preview or external opening.",
+    "baseline": "Keep standard iTerm2 and other terminals usable without any zterm2-specific extension."
+  },
+  "memory": {"inflightRule": "bounded; never overwrite a GPU resource before completion; discard obsolete work rather than accumulate a frame history", "drainRule": "stop new work, quiesce workers, retire GPU resources safely, release leases and require explicit safe resume"},
+  "evidence": {
+    "kinds": ["capabilities", "tests", "performance"],
+    "receipt": "received-not-qualified",
+    "review": "Each owner records adoption and qualification separately with bundle SHA and evidence. A received bundle cannot qualify a feature or release.",
+    "comparability": "Require equal fixture SHA, geometry, colour/alpha policy, quality, requested cadence, audio, hardware and measurement scope before claiming a matched speedup. If any comparison key is unknown, label the result descriptive-only.",
+    "cpu": "100%=one logical core",
+    "memory": "physical-footprint-bytes; do not sum RSS as exclusive physical memory",
+    "privacy": "Export only reviewed declarative artifacts, no session transcript, credentials, user environment or absolute source paths. SHA checks detect changes, not authorship."
+  },
+  "delivery": {
+    "independentVersions": true,
+    "independentQualification": true,
+    "automaticPeerUpdate": false,
+    "automaticPeerCodeExecution": false,
+    "releaseDependency": "Contract-major compatibility and positively probed capabilities; never require both project release numbers to advance together.",
+    "ownership": "Each owner imports into its own repository/inbox and changes its own code only."
+  },
+  "upstream": {"owner": "zterm2", "rule": "Track official stable iTerm2 updates separately from the pinned fork base and the qualified zterm2 version; detection never triggers automatic deployment."}
+}

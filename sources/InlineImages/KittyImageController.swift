@@ -731,9 +731,8 @@ class KittyImageController: NSObject {
             return nil
         }
 
-        let nsimage = NSImage(cgImage: cgImage, size: NSSize(width: Int(width), height: Int(height)))
         DLog("image(data:bpp:width:height:): success - created image \(width)x\(height)")
-        return iTermImage(nativeImage: nsimage)
+        return iTermImage(cgImage: cgImage)
     }
 
     private func decodeDirectTransmission(_ command: KittyImageCommand.ImageTransmission, payload: String) -> Data? {

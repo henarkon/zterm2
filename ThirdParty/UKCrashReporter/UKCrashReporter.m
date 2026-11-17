@@ -176,12 +176,20 @@ NSString* UKCrashReporterFindTenFiveCrashReportPath(NSString* appName, NSArray *
     NSString* foundName = nil;
     NSDate* foundDate = nil;
     NSString* foundFolder = nil;
+    // A helper such as zterm2-texture-harness also starts with zterm2-. Only
+    // accept the timestamp that immediately follows the actual executable name.
+    NSRegularExpression *timestamp = [NSRegularExpression regularExpressionWithPattern:
+        @"^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}(?:[-_.].*)?$" options:0 error:nil];
     
     for (NSString *crashLogsFolder in folders) {
         // Find the newest of our crash log files:
         NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:crashLogsFolder error:nil];
         for (currName in contents) {
             if ([currName hasPrefix:crashLogPrefix] && [currName hasSuffix:crashLogSuffix] ) {
+                NSString *tail = [currName substringFromIndex:crashLogPrefix.length];
+                if (![timestamp firstMatchInString:tail options:0 range:NSMakeRange(0, tail.length)]) {
+                    continue;
+                }
                 NSString *fullPath = [crashLogsFolder stringByAppendingPathComponent:currName];
                 NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:fullPath error:nil];
                 NSDate *currDate = [attrs fileModificationDate];
@@ -275,6 +283,13 @@ NSString*    gCrashLogString = nil;
 
 -(void)    awakeFromNib
 {
+    if ([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"org.henarkon.zterm2"]) {
+        [sendButton setHidden:YES];
+        const char *metrics = getenv("ZTERM2_RENDER_METRICS");
+        if (metrics && strcmp(metrics, "1") == 0) {
+            fprintf(stderr, "ZTERM2_UNEXPECTED_CRASH_REPORTER\n");
+        }
+    }
     // Insert the app name into the explanation message:
     NSString*            appName = [[NSFileManager defaultManager] displayNameAtPath: [[NSBundle mainBundle] bundlePath]];
     NSMutableString*    explanation = nil;
@@ -338,6 +353,8 @@ NSString*    gCrashLogString = nil;
 
 -(IBAction)    sendCrashReport: (id)sender
 {
+    // The fork has no upstream crash-reporting authority or configured endpoint.
+    if ([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"org.henarkon.zterm2"]) { return; }
     NSString            *boundary = @"0xKhTmLbOuNdArY";
     NSMutableString*    crashReportString = [NSMutableString string];
     [crashReportString appendString: [informationField string]];

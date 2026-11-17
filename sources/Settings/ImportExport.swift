@@ -406,6 +406,10 @@ private struct ImportExportConfig {
         var relativePath: String?
 
         var url: URL {
+            if baseDirectory == .home, relativePath == ".iterm2",
+               Bundle.main.bundleIdentifier == "org.henarkon.zterm2" {
+                return URL(fileURLWithPath: FileManager.default.homeDirectoryDotDir())
+            }
             let base = {
                 switch baseDirectory {
                 case .home:

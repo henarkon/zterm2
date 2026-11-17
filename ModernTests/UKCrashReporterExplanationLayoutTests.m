@@ -12,6 +12,8 @@
 #import <XCTest/XCTest.h>
 #import <AppKit/AppKit.h>
 
+extern NSString *UKCrashReporterFindTenFiveCrashReportPath(NSString *appName, NSArray *folders);
+
 // Stands in for UKCrashReporter as the nib's owner so loading the nib doesn't
 // run UKCrashReporter's -awakeFromNib, which shows the window.
 @interface UKCrashReporterNibOwnerForTesting : NSObject
@@ -41,6 +43,22 @@
 
 @implementation UKCrashReporterExplanationLayoutTests {
     NSArray *_topLevelObjects;
+}
+
+- (void)testReportSelectionRejectsHelperCrashAndKeepsApplicationCrash {
+    NSString *directory = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
+    NSFileManager *manager = NSFileManager.defaultManager;
+    XCTAssertTrue([manager createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil]);
+    @try {
+        NSString *helper = [directory stringByAppendingPathComponent:@"zterm2-texture-harness-2026-11-11-222431.ips"];
+        XCTAssertTrue([@"helper" writeToFile:helper atomically:YES encoding:NSUTF8StringEncoding error:nil]);
+        XCTAssertNil(UKCrashReporterFindTenFiveCrashReportPath(@"zterm2", @[directory]));
+        NSString *application = [directory stringByAppendingPathComponent:@"zterm2-2026-11-12-082000.ips"];
+        XCTAssertTrue([@"application" writeToFile:application atomically:YES encoding:NSUTF8StringEncoding error:nil]);
+        XCTAssertEqualObjects(UKCrashReporterFindTenFiveCrashReportPath(@"zterm2", @[directory]), application);
+    } @finally {
+        [manager removeItemAtPath:directory error:nil];
+    }
 }
 
 + (NSArray<NSString *> *)translations {

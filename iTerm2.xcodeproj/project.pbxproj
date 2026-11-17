@@ -1822,6 +1822,7 @@
 		A62A79BF2F98835A007CAA0B /* iTermMarginRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62A79992F98835A007CAA0B /* iTermMarginRenderer.swift */; };
 		A62A79C02F98835A007CAA0B /* iTermIndicatorRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A62A79962F98835A007CAA0B /* iTermIndicatorRenderer.m */; };
 		A62A79C12F98835A007CAA0B /* KittyImageRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62A79A92F98835A007CAA0B /* KittyImageRenderer.swift */; };
+		F1E000000000000000000001 /* ZTermKittyTexturePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E000000000000000000002 /* ZTermKittyTexturePipeline.swift */; };
 		A62A79C22F98835A007CAA0B /* RectangleRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62A79AC2F98835A007CAA0B /* RectangleRenderer.swift */; };
 		A62A79C32F98835A007CAA0B /* TerminalButtonRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62A79AD2F98835A007CAA0B /* TerminalButtonRenderer.swift */; };
 		A62A79C42F98835A007CAA0B /* UnderlineRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62A79AF2F98835A007CAA0B /* UnderlineRenderer.swift */; };
@@ -6758,6 +6759,7 @@
 		A62A79A72F98835A007CAA0B /* iTermTimestampsRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermTimestampsRenderer.h; sourceTree = "<group>"; };
 		A62A79A82F98835A007CAA0B /* iTermTimestampsRenderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermTimestampsRenderer.m; sourceTree = "<group>"; };
 		A62A79A92F98835A007CAA0B /* KittyImageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KittyImageRenderer.swift; sourceTree = "<group>"; };
+		F1E000000000000000000002 /* ZTermKittyTexturePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZTermKittyTexturePipeline.swift; sourceTree = "<group>"; };
 		A62A79AA2F98835A007CAA0B /* PillBackgroundGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillBackgroundGenerator.swift; sourceTree = "<group>"; };
 		A62A79AB2F98835A007CAA0B /* PillBackgroundRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillBackgroundRenderer.swift; sourceTree = "<group>"; };
 		A62A79AC2F98835A007CAA0B /* RectangleRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RectangleRenderer.swift; sourceTree = "<group>"; };
@@ -11618,6 +11620,7 @@
 				A62A79A72F98835A007CAA0B /* iTermTimestampsRenderer.h */,
 				A62A79A82F98835A007CAA0B /* iTermTimestampsRenderer.m */,
 				A62A79A92F98835A007CAA0B /* KittyImageRenderer.swift */,
+				F1E000000000000000000002 /* ZTermKittyTexturePipeline.swift */,
 				A62A79AA2F98835A007CAA0B /* PillBackgroundGenerator.swift */,
 				A62A79AB2F98835A007CAA0B /* PillBackgroundRenderer.swift */,
 				A62A79AC2F98835A007CAA0B /* RectangleRenderer.swift */,
@@ -18632,13 +18635,13 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(DERIVED_SOURCES_DIR)/iTerm2-Swift.h",
+				"$(DERIVED_SOURCES_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
 			);
 			name = "Make symlink to iTerm";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(PROJECT_DERIVED_FILE_DIR)/iTerm2-Swift.h",
+				"$(PROJECT_DERIVED_FILE_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -18850,6 +18853,7 @@
 				A62A79BF2F98835A007CAA0B /* iTermMarginRenderer.swift in Sources */,
 				A62A79C02F98835A007CAA0B /* iTermIndicatorRenderer.m in Sources */,
 				A62A79C12F98835A007CAA0B /* KittyImageRenderer.swift in Sources */,
+				F1E000000000000000000001 /* ZTermKittyTexturePipeline.swift in Sources */,
 				A62A79C22F98835A007CAA0B /* RectangleRenderer.swift in Sources */,
 				A62A79C32F98835A007CAA0B /* TerminalButtonRenderer.swift in Sources */,
 				A62A79C42F98835A007CAA0B /* UnderlineRenderer.swift in Sources */,
@@ -21644,7 +21648,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/PerformanceTests/PerformanceTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/sources",
 					"$(SRCROOT)/ThirdParty",
@@ -21677,7 +21681,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/PerformanceTests/PerformanceTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/sources",
 					"$(SRCROOT)/ThirdParty",
@@ -21788,7 +21792,7 @@
 					ThirdParty,
 					"sources/**",
 				);
-				INFOPLIST_FILE = plists/iTerm2.plist;
+				INFOPLIST_FILE = plists/zterm2.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@loader_path/../Frameworks",
 					"@executable_path/../Frameworks",
@@ -21814,8 +21818,8 @@
 					"-force_load",
 					"$(BUILT_PRODUCTS_DIR)/libit2core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
-				PRODUCT_NAME = iTerm2;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2;
+				PRODUCT_NAME = zterm2;
 				PROVISIONING_PROFILE_SPECIFIER = "iTerm2 Dev ID Keychain";
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
@@ -22879,7 +22883,7 @@
 					ThirdParty,
 					"sources/**",
 				);
-				INFOPLIST_FILE = plists/iTerm2.plist;
+				INFOPLIST_FILE = plists/zterm2.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@loader_path/../Frameworks",
 					"@executable_path/../Frameworks",
@@ -22902,8 +22906,8 @@
 					"-force_load",
 					"$(BUILT_PRODUCTS_DIR)/libit2core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
-				PRODUCT_NAME = iTerm2;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2;
+				PRODUCT_NAME = zterm2;
 				PROVISIONING_PROFILE_SPECIFIER = "iTerm2 Dev ID Keychain";
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
@@ -24446,7 +24450,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CODE_SIGN_FLAGS = "";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.iTerm2ImportStatus;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2.importstatus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -24521,7 +24525,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.iTerm2ImportStatus;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2.importstatus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -24596,7 +24600,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.iTerm2ImportStatus;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2.importstatus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -24671,7 +24675,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.iTerm2ImportStatus;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2.importstatus;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -24768,7 +24772,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/ThirdParty",
 					"$(PROJECT_DIR)/ThirdParty/adblock-rust/include",
@@ -24855,7 +24859,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/ThirdParty",
 					"$(PROJECT_DIR)/ThirdParty/adblock-rust/include",
@@ -24942,7 +24946,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/ThirdParty",
 					"$(PROJECT_DIR)/ThirdParty/adblock-rust/include",
@@ -25029,7 +25033,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTerm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iTerm2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/zterm2.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/zterm2";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/ThirdParty",
 					"$(PROJECT_DIR)/ThirdParty/adblock-rust/include",
@@ -25297,7 +25301,7 @@
 					ThirdParty,
 					"sources/**",
 				);
-				INFOPLIST_FILE = plists/iTerm2.plist;
+				INFOPLIST_FILE = plists/zterm2.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@loader_path/../Frameworks",
 					"@executable_path/../Frameworks",
@@ -25325,8 +25329,8 @@
 					"-force_load",
 					"$(BUILT_PRODUCTS_DIR)/libit2core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
-				PRODUCT_NAME = iTerm2;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2;
+				PRODUCT_NAME = zterm2;
 				SDKROOT = macosx;
 				SECTORDER_FLAGS = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "";
@@ -25397,7 +25401,7 @@
 					ThirdParty,
 					"sources/**",
 				);
-				INFOPLIST_FILE = plists/iTerm2.plist;
+				INFOPLIST_FILE = plists/zterm2.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@loader_path/../Frameworks",
 					"@executable_path/../Frameworks",
@@ -25420,8 +25424,8 @@
 					"-force_load",
 					"$(BUILT_PRODUCTS_DIR)/libit2core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
-				PRODUCT_NAME = iTerm2;
+				PRODUCT_BUNDLE_IDENTIFIER = org.henarkon.zterm2;
+				PRODUCT_NAME = zterm2;
 				PROVISIONING_PROFILE_SPECIFIER = "iTerm2 Dev ID Keychain";
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "";

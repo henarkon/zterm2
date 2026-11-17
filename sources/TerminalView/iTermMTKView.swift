@@ -135,6 +135,7 @@ public class iTermMTKView: iTermMetalView {
     // matches the display's gamut (extended Display P3 vs extended sRGB) so a
     // wide-gamut display's color reproduction is not shifted.
     private var preferredColorspace: CGColorSpace? {
+        if iTermZtermBackgroundTestMode() { return CGColorSpace(name: CGColorSpace.displayP3) }
         let screenColorspace = window?.screen?.colorSpace?.cgColorSpace
         guard wantsEDR, let screen = window?.screen else {
             return screenColorspace

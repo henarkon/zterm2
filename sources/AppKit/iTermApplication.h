@@ -55,6 +55,9 @@ extern NSNotificationName const iTermApplicationCharacterAccentMenuVisibilityDid
 - (BOOL)handleInternalURL:(NSURL *)url;
 @end
 
+// Explicitly opt-in qualification mode for the fork; never changes normal launches.
+FOUNDATION_EXPORT BOOL iTermZtermBackgroundTestMode(void);
+
 @interface iTermApplication : NSApplication
 
 + (iTermApplication *)sharedApplication;
